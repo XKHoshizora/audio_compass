@@ -1,0 +1,19 @@
+from setuptools import setup
+from catkin_pkg.python_setup import generate_distutils_setup
+
+d = generate_distutils_setup(
+    packages=['speech_recognizer', 'speech_generator'],
+    package_dir={'': 'src'}
+    install_requires=[
+        'pyaudio',
+        'vosk',
+        'SpeechRecognition',
+        'scipy',
+        'whisper',
+        'torch',
+        'numpy',
+        'pyttsx3'
+    ]
+)
+
+setup(**d)

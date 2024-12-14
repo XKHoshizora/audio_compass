@@ -1,0 +1,10 @@
+<launch>
+    <!-- 启动语音识别节点 -->
+    <include file="$(find audio_compass)/launch/speech_recognizer.launch"/>
+
+    <!-- 启动语音生成节点 -->
+    <include file="$(find audio_compass)/launch/speech_generator.launch"/>
+
+    <!-- 启动音频导航桥接节点 -->
+    <node pkg="audio_compass" type="audio_ros_bridge.py" name="audio_ros_bridge" output="screen"/>
+</launch>

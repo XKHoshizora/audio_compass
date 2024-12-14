@@ -1,0 +1,24 @@
+<launch>
+    <!-- 启动语音识别节点 -->
+    <node pkg="audio_compass" type="speech_recognizer_node.py" name="speech_recognizer" output="screen" required="false">
+        <!-- 如果节点启动失败，不会影响其他节点 -->
+        <param name="respawn" value="true"/>
+        <param name="respawn_delay" value="5"/>
+
+        <!-- 配置语音识别类型 Options: google, vosk, whisper-->
+        <param name="recognizer_type" value="google"/>
+        <!-- 语言类型 Options: en-US, ja-JP, zh-CN -->
+        <param name="language" value="ja-JP"/>
+
+        <!-- Whisper 特定配置 Options: tiny, base, small, medium, large -->
+        <!-- <param name="whisper_model" value="tiny"/> -->
+
+        <!-- 可选：自定义触发词列表 -->
+        <!-- <rosparam param="trigger_patterns">
+        - "たっくん"
+        - "タックン"
+        - "るみちゃん"
+        # 可以添加更多...
+        </rosparam> -->
+    </node>
+</launch>

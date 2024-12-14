@@ -1,0 +1,4 @@
+string text  # Text to speak
+---
+bool success  # Did the action succeed?
+string message  # Description of outcome
