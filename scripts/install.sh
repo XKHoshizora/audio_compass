@@ -23,7 +23,17 @@ check_command() {
 
 # 检查Python包是否已安装
 check_python_package() {
-    if python3 -c "import $1" &> /dev/null; then
+    local package=$1
+    case $package in
+        "SpeechRecognition")
+            package="speech_recognition"
+            ;;
+        "openai-whisper")
+            package="whisper"
+            ;;
+    esac
+
+    if python3 -c "import $package" &> /dev/null; then
         return 0
     fi
     return 1
@@ -53,7 +63,7 @@ system_deps=(
     "python3-pip"
     "portaudio19-dev"
     "python3-pyaudio"
-    "libopenblas-base"
+    "libopenblas-dev"
     "libopenmpi-dev"
     "libasound-dev"
     "ffmpeg"
@@ -91,9 +101,6 @@ for dep in "${python_deps[@]}"; do
     if ! check_python_package $dep; then
         print_msg $YELLOW "安装 $dep..."
         python3 -m pip install --no-cache-dir $dep
-        if [ $? -ne 0 ]; then
-            print_msg $RED "安装 $dep 失败"
-        fi
     else
         print_msg $GREEN "$dep 已安装"
     fi
@@ -101,42 +108,39 @@ done
 
 # 安装OpenAI Whisper
 print_msg $YELLOW "安装 OpenAI Whisper..."
-if ! check_python_package "whisper"; then
+if ! check_python_package "openai-whisper"; then
     python3 -m pip install --no-cache-dir openai-whisper
-    if [ $? -ne 0 ]; then
-        print_msg $RED "安装 OpenAI Whisper 失败"
-    fi
-else
-    print_msg $GREEN "OpenAI Whisper 已安装"
 fi
 
 # 安装PyTorch
 if [[ $(uname -m) == "aarch64" ]]; then
-    print_msg $YELLOW "检测到Jetson平台，安装特定版本的PyTorch..."
-    # 获取Python版本
-    PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    print_msg $YELLOW "检测到Jetson平台，安装PyTorch..."
 
-    if [ "$PYTHON_VERSION" = "3.8" ]; then
-        TORCH_URL="https://developer.download.nvidia.com/compute/redist/jp/v502/pytorch/torch-1.11.0a0+17540c5-cp38-cp38-linux_aarch64.whl"
-        print_msg $YELLOW "下载PyTorch wheel文件..."
-        if wget -O torch.whl $TORCH_URL; then
-            print_msg $YELLOW "安装PyTorch..."
-            python3 -m pip install torch.whl
-            rm torch.whl
-            if [ $? -ne 0 ]; then
-                print_msg $RED "安装PyTorch失败"
-            fi
-        else
-            print_msg $RED "下载PyTorch失败"
-        fi
+    # 设置PyTorch安装URL
+    TORCH_URL="https://developer.download.nvidia.cn/compute/redist/jp/v511/pytorch/torch-2.0.0+nv23.05-cp38-cp38-linux_aarch64.whl"
+
+    print_msg $YELLOW "设置LD_LIBRARY_PATH..."
+    export LD_LIBRARY_PATH=/usr/lib/llvm-8/lib:$LD_LIBRARY_PATH
+
+    print_msg $YELLOW "安装PyTorch..."
+    python3 -m pip install --no-cache --upgrade ${TORCH_URL}
+
+    if [ $? -eq 0 ]; then
+        print_msg $GREEN "PyTorch安装成功"
     else
-        print_msg $RED "不支持的Python版本: $PYTHON_VERSION"
-        print_msg $YELLOW "尝试从PyPI安装PyTorch..."
-        python3 -m pip install torch
+        print_msg $RED "PyTorch安装失败"
     fi
 else
-    print_msg $YELLOW "安装标准版PyTorch..."
+    print_msg $YELLOW "非Jetson平台，安装标准版PyTorch..."
     python3 -m pip install torch
+fi
+
+# 验证PyTorch安装
+print_msg $YELLOW "验证PyTorch安装..."
+if python3 -c "import torch; print('PyTorch version:', torch.__version__)"; then
+    print_msg $GREEN "PyTorch验证成功"
+else
+    print_msg $RED "PyTorch验证失败"
 fi
 
 # 检查音频设备
@@ -153,8 +157,8 @@ else
     print_msg $GREEN "检测到播放设备"
 fi
 
-# 最后验证所有安装
-print_msg $YELLOW "验证安装..."
+# 最后的验证
+print_msg $YELLOW "验证所有安装..."
 all_deps_installed=true
 
 for dep in "${python_deps[@]}"; do
@@ -163,17 +167,6 @@ for dep in "${python_deps[@]}"; do
         all_deps_installed=false
     fi
 done
-
-# 特别检查PyTorch和Whisper
-if ! check_python_package "torch"; then
-    print_msg $RED "警告: PyTorch 安装失败"
-    all_deps_installed=false
-fi
-
-if ! check_python_package "whisper"; then
-    print_msg $RED "警告: Whisper 安装失败"
-    all_deps_installed=false
-fi
 
 if [ "$all_deps_installed" = true ]; then
     print_msg $GREEN "所有依赖安装成功！"
@@ -185,4 +178,5 @@ print_msg $GREEN "安装脚本执行完成！"
 print_msg $YELLOW "请注意："
 print_msg $YELLOW "1. 如果看到pip权限警告，可以忽略"
 print_msg $YELLOW "2. 如果音频设备未就绪，可以稍后插入"
-print_msg $YELLOW "3. 建议重新启动终端以确保所有更改生效"
+print_msg $YELLOW "3. 可能需要运行: export LD_LIBRARY_PATH=/usr/lib/llvm-8/lib:\$LD_LIBRARY_PATH"
+print_msg $YELLOW "4. 建议重新启动终端以确保所有更改生效"
