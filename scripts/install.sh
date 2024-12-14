@@ -29,14 +29,6 @@ check_python_package() {
     return 1
 }
 
-# 检查ROS包是否已安装
-check_ros_package() {
-    if rospack find $1 &> /dev/null; then
-        return 0
-    fi
-    return 1
-}
-
 # 确保脚本以root权限运行
 if [ "$EUID" -ne 0 ]; then
     print_msg $RED "请使用sudo运行此脚本"
@@ -64,6 +56,7 @@ system_deps=(
     "libopenblas-base"
     "libopenmpi-dev"
     "libasound-dev"
+    "ffmpeg"
     "ros-noetic-tf2"
     "ros-noetic-tf2-ros"
     "ros-noetic-tf2-geometry-msgs"
@@ -79,6 +72,10 @@ for dep in "${system_deps[@]}"; do
     fi
 done
 
+# 升级pip
+print_msg $YELLOW "升级pip..."
+python3 -m pip install --upgrade pip
+
 # 安装Python包
 print_msg $YELLOW "安装Python包..."
 python_deps=(
@@ -87,53 +84,76 @@ python_deps=(
     "vosk"
     "SpeechRecognition"
     "scipy"
-    "whisper"
     "numpy"
 )
 
 for dep in "${python_deps[@]}"; do
     if ! check_python_package $dep; then
         print_msg $YELLOW "安装 $dep..."
-        pip3 install $dep
+        python3 -m pip install --no-cache-dir $dep
+        if [ $? -ne 0 ]; then
+            print_msg $RED "安装 $dep 失败"
+        fi
     else
         print_msg $GREEN "$dep 已安装"
     fi
 done
 
-# 特殊处理: PyTorch for Jetson
-if [[ $(uname -m) == "aarch64" ]]; then
-    print_msg $YELLOW "检测到Jetson平台，安装特定版本的PyTorch..."
-    if ! check_python_package "torch"; then
-        wget https://nvidia.box.com/shared/static/p57jwntv436lfrd78inwl7iml6p13fzh.whl -O torch-1.8.0-cp36-cp36m-linux_aarch64.whl
-        pip3 install torch-1.8.0-cp36-cp36m-linux_aarch64.whl
-        rm torch-1.8.0-cp36-cp36m-linux_aarch64.whl
-    else
-        print_msg $GREEN "PyTorch 已安装"
+# 安装OpenAI Whisper
+print_msg $YELLOW "安装 OpenAI Whisper..."
+if ! check_python_package "whisper"; then
+    python3 -m pip install --no-cache-dir openai-whisper
+    if [ $? -ne 0 ]; then
+        print_msg $RED "安装 OpenAI Whisper 失败"
     fi
 else
-    if ! check_python_package "torch"; then
-        print_msg $YELLOW "安装 PyTorch..."
-        pip3 install torch
+    print_msg $GREEN "OpenAI Whisper 已安装"
+fi
+
+# 安装PyTorch
+if [[ $(uname -m) == "aarch64" ]]; then
+    print_msg $YELLOW "检测到Jetson平台，安装特定版本的PyTorch..."
+    # 获取Python版本
+    PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+
+    if [ "$PYTHON_VERSION" = "3.8" ]; then
+        TORCH_URL="https://developer.download.nvidia.com/compute/redist/jp/v502/pytorch/torch-1.11.0a0+17540c5-cp38-cp38-linux_aarch64.whl"
+        print_msg $YELLOW "下载PyTorch wheel文件..."
+        if wget -O torch.whl $TORCH_URL; then
+            print_msg $YELLOW "安装PyTorch..."
+            python3 -m pip install torch.whl
+            rm torch.whl
+            if [ $? -ne 0 ]; then
+                print_msg $RED "安装PyTorch失败"
+            fi
+        else
+            print_msg $RED "下载PyTorch失败"
+        fi
     else
-        print_msg $GREEN "PyTorch 已安装"
+        print_msg $RED "不支持的Python版本: $PYTHON_VERSION"
+        print_msg $YELLOW "尝试从PyPI安装PyTorch..."
+        python3 -m pip install torch
     fi
+else
+    print_msg $YELLOW "安装标准版PyTorch..."
+    python3 -m pip install torch
 fi
 
 # 检查音频设备
 print_msg $YELLOW "检查音频设备..."
 if ! arecord -l &> /dev/null; then
-    print_msg $RED "警告: 未检测到录音设备"
+    print_msg $YELLOW "警告: 未检测到录音设备"
 else
     print_msg $GREEN "检测到录音设备"
 fi
 
 if ! aplay -l &> /dev/null; then
-    print_msg $RED "警告: 未检测到播放设备"
+    print_msg $YELLOW "警告: 未检测到播放设备"
 else
     print_msg $GREEN "检测到播放设备"
 fi
 
-# 最后的检查
+# 最后验证所有安装
 print_msg $YELLOW "验证安装..."
 all_deps_installed=true
 
@@ -144,14 +164,25 @@ for dep in "${python_deps[@]}"; do
     fi
 done
 
+# 特别检查PyTorch和Whisper
+if ! check_python_package "torch"; then
+    print_msg $RED "警告: PyTorch 安装失败"
+    all_deps_installed=false
+fi
+
+if ! check_python_package "whisper"; then
+    print_msg $RED "警告: Whisper 安装失败"
+    all_deps_installed=false
+fi
+
 if [ "$all_deps_installed" = true ]; then
     print_msg $GREEN "所有依赖安装成功！"
 else
     print_msg $RED "部分依赖安装失败，请检查上述错误信息"
 fi
 
-# 创建一个标记文件表示已经运行过安装脚本
-touch ~/.audio_compass_deps_installed
-
 print_msg $GREEN "安装脚本执行完成！"
-print_msg $YELLOW "请注意：某些功能可能需要重新启动终端才能生效"
+print_msg $YELLOW "请注意："
+print_msg $YELLOW "1. 如果看到pip权限警告，可以忽略"
+print_msg $YELLOW "2. 如果音频设备未就绪，可以稍后插入"
+print_msg $YELLOW "3. 建议重新启动终端以确保所有更改生效"
