@@ -85,12 +85,8 @@ class SpeechGenerator:
         if not self.is_engine_ready or not self.voices:
             return
 
-        rospy.loginfo("可用的声音:")
-        for voice in self.voices:
-            rospy.loginfo(f"ID: {voice.id}")
-            rospy.loginfo(f"Name: {voice.name}")
-            rospy.loginfo(f"Languages: {voice.languages}")
-            rospy.loginfo("------------------------")
+        # 打印可用的声音列表（很长，不需要可以注释掉）
+        # self._print_available_voices()
 
         for voice in self.voices:
             voice_id = voice.id.lower()
@@ -100,6 +96,15 @@ class SpeechGenerator:
                 self.voice_settings['zh']['voice_id'] = voice.id
             elif 'japanese' in voice_id or 'ja' in voice_id or 'jp' in voice_id:
                 self.voice_settings['ja']['voice_id'] = voice.id
+
+    def _print_available_voices(self):
+        """打印可用的声音列表"""
+        rospy.loginfo("可用的声音:")
+        for voice in self.voices:
+            rospy.loginfo(f"ID: {voice.id}")
+            rospy.loginfo(f"Name: {voice.name}")
+            rospy.loginfo(f"Languages: {voice.languages}")
+            rospy.loginfo("------------------------")
 
     def detect_language(self, text):
         """检测文本的主要语言"""
