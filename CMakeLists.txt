@@ -46,16 +46,8 @@ include_directories(
 )
 
 catkin_install_python(PROGRAMS
-    scripts/speech_recognizer_node
-    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-catkin_install_python(PROGRAMS
-    scripts/speech_generator_node
-    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-catkin_install_python(PROGRAMS
+    scripts/speech_recognizer_node.py
+    scripts/speech_generator_node.py
     scripts/audio_ros_bridge.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
