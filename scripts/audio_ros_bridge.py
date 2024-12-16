@@ -6,7 +6,7 @@ import threading
 import rospy
 import actionlib
 import tf2_ros
-import tf.transformations as tf
+from tf import transformations
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
 from audio_compass.msg import SpeechDirection
@@ -179,13 +179,13 @@ class AudioRosBridge:
                 ]
 
                 # 计算目标朝向
-                target_quaternion = tf.transformations.quaternion_multiply(
+                target_quaternion = transformations.quaternion_multiply(
                     current_rot,
-                    tf.transformations.quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw
+                    transformations.quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw
                 )
 
                 # 设置位姿，使用四元数
-                # target_quaternion = tf.quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw（基于机器人本地坐标系时使用）
+                # target_quaternion = quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw（基于机器人本地坐标系时使用）
                 goal.target_pose.pose.orientation.x = target_quaternion[0]
                 goal.target_pose.pose.orientation.y = target_quaternion[1]
                 goal.target_pose.pose.orientation.z = target_quaternion[2]
