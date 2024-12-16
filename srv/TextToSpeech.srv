@@ -1,4 +1,5 @@
 string text  # Text to speak
+string language # Language code (optional)
 ---
 bool success  # Did the action succeed?
 string message  # Description of outcome

@@ -130,6 +130,13 @@ class AudioRosBridge:
     def navigation_process(self, angle_rad):
         """控制机器人到指定目标点和位姿"""
         try:
+            # 检查tf变换是否就绪
+            tf_listener = tf.TransformListener()
+            if not tf_listener.waitForTransform("map", "base_link", rospy.Time(0), rospy.Duration(5.0)):
+                rospy.logerr("无法获取从map到base_link的转换，请确认机器人位置已初始化")
+                self.async_speak("请先设置机器人初始位置")
+                return False
+
             # 暂停导航
             self.pause_navigation()
 
