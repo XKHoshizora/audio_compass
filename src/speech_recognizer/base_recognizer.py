@@ -78,40 +78,40 @@ class BaseRecognizer:
             except Exception as e:
                 pass
 
-    def log_err(self, message, speech=False, _show_terminal=None):
+    def log_err(self, message, speech=False, show_terminal=None):
         """记录错误日志"""
         # 如果没有指定 show_terminal，使用默认值
-        if _show_terminal is None:
-            _show_terminal = self.show_terminal
+        if show_terminal is None:
+            show_terminal = self.show_terminal
 
-        if _show_terminal:
+        if show_terminal:
             rospy.logerr(message)
         self._log(message, "ERROR", speech)
 
-    def log_warn(self, message, speech=False, _show_terminal=None):
+    def log_warn(self, message, speech=False, show_terminal=None):
         """记录警告日志"""
-        if _show_terminal is None:
-            _show_terminal = self.show_terminal
+        if show_terminal is None:
+            show_terminal = self.show_terminal
 
-        if _show_terminal:
+        if show_terminal:
             rospy.logwarn(message)
         self._log(message, "WARN", speech)
 
-    def log_info(self, message, speech=False, _show_terminal=None):
+    def log_info(self, message, speech=False, show_terminal=None):
         """记录信息日志"""
-        if _show_terminal is None:
-            _show_terminal = self.show_terminal
+        if show_terminal is None:
+            show_terminal = self.show_terminal
 
-        if _show_terminal:
+        if show_terminal:
             rospy.loginfo(message)
         self._log(message, "INFO", speech)
 
-    def log_speech(self, message, speech=True, _show_terminal=None):
+    def log_speech(self, message, speech=True, show_terminal=None):
         """记录语音识别结果"""
-        if _show_terminal is None:
-            _show_terminal = self.show_terminal
+        if show_terminal is None:
+            show_terminal = self.show_terminal
 
-        if _show_terminal:
+        if show_terminal:
             rospy.loginfo(message)
         self._log(message, "INFO", speech)
 
