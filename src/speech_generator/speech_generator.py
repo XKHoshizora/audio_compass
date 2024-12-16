@@ -93,7 +93,9 @@ class SpeechGenerator:
             if 'english' in voice_id or 'en' in voice_id:
                 self.voice_settings['en']['voice_id'] = voice.id
             elif 'chinese' in voice_id or 'zh' in voice_id:
-                self.voice_settings['zh']['voice_id'] = voice.id
+                # 强制选择普通话语音
+                if 'mandarin' in voice.name.lower() or 'cmn' in voice.languages:
+                    self.voice_settings['zh']['voice_id'] = voice.id
             elif 'japanese' in voice_id or 'ja' in voice_id or 'jp' in voice_id:
                 self.voice_settings['ja']['voice_id'] = voice.id
 
