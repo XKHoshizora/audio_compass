@@ -97,7 +97,8 @@ class SpeechGenerator:
         try:
             settings = self.voice_settings.get(language, self.voice_settings['en'])
             voice_id = settings['voice_id']
-            rate = settings['rate']
+            # 确保 rate 为字符串格式
+            rate = f"{settings['rate']}%" if isinstance(settings['rate'], int) else settings['rate']
 
             communicate = edge_tts.Communicate(text=text, voice=voice_id, rate=rate)
             output_file = "/tmp/output.mp3"  # 临时存储生成的音频
