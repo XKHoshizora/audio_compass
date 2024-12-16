@@ -33,7 +33,10 @@ check_python_package() {
             ;;
     esac
 
-    if python3 -c "import $package" &> /dev/null; then
+    # if python3 -c "import $package" &> /dev/null; then
+    #     return 0
+    # fi
+    if python3 -m pip show $package &> /dev/null; then
         return 0
     fi
     return 1
@@ -105,6 +108,9 @@ for dep in "${python_deps[@]}"; do
     if ! check_python_package $dep; then
         print_msg $YELLOW "安装 $dep..."
         python3 -m pip install --no-cache-dir $dep
+        if [ $? -ne 0 ]; then
+            print_msg $RED "警告: $dep 安装失败"
+        fi
     else
         print_msg $GREEN "$dep 已安装"
     fi
