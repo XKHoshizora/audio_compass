@@ -71,6 +71,7 @@ system_deps=(
     "ros-noetic-tf2-ros"
     "ros-noetic-tf2-geometry-msgs"
     "python3-tf2-geometry-msgs"
+    "flac"
 )
 
 for dep in "${system_deps[@]}"; do

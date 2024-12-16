@@ -36,6 +36,7 @@ class GoogleSpeechRecognizer(BaseRecognizer):
             # 扩展触发词模式，包括更多可能的变体
             self.trigger_patterns = trigger_patterns or [
                 r'たっくん',
+                r'たっく',
                 r'タックン',
                 r'タッくん',
                 r'たッくん',
