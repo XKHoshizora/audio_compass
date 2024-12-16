@@ -5,14 +5,14 @@ import math
 import threading
 import rospy
 import actionlib
-import tf2_ros
+# import tf2_ros
 from tf import transformations
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
 from audio_compass.msg import SpeechDirection
-from audio_compass.srv import TextToSpeech, TextToSpeechResponse
-from wp_nav_controller.srv import NavigationCommand, NavigationCommandResponse
-from wp_nav_controller.srv import SequenceCommand, SequenceCommandResponse
+from audio_compass.srv import TextToSpeech
+from wp_nav_controller.srv import NavigationCommand
+from wp_nav_controller.srv import SequenceCommand
 
 
 class AudioRosBridge:
@@ -20,8 +20,8 @@ class AudioRosBridge:
         rospy.init_node('audio_ros_bridge', anonymous=True)
 
         # 初始化 TF2
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+        # self.tf_buffer = tf2_ros.Buffer()
+        # self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
         # 初始化 move_base
         # 创建 move_base 的 Action Client
@@ -147,45 +147,45 @@ class AudioRosBridge:
 
             # 创建目标姿态
             goal = MoveBaseGoal()
-            # goal.target_pose.header.frame_id = "base_link"  # 基于机器人本地坐标系
-            goal.target_pose.header.frame_id = "map"  # 基于地图坐标系
+            goal.target_pose.header.frame_id = "base_link"  # 基于机器人本地坐标系
+            # goal.target_pose.header.frame_id = "map"  # 基于地图坐标系
             goal.target_pose.header.stamp = rospy.Time.now()
 
             # 获取机器人当前位置
             try:
-                trans = self.tf_buffer.lookup_transform(
-                    'map',
-                    'base_link',
-                    rospy.Time(),
-                    rospy.Duration(1.0)
-                )
+                # trans = self.tf_buffer.lookup_transform(
+                #     'map',
+                #     'base_link',
+                #     rospy.Time(),
+                #     rospy.Duration(1.0)
+                # )
 
                 # 使用当前位置
-                goal.target_pose.pose.position.x = trans.transform.translation.x
-                goal.target_pose.pose.position.y = trans.transform.translation.y
-                goal.target_pose.pose.position.z = 0.0
-
-                # 设置当前位置为目标点（基于机器人本地坐标系时使用）
-                # goal.target_pose.pose.position.x = 0.0
-                # goal.target_pose.pose.position.y = 0.0
+                # goal.target_pose.pose.position.x = trans.transform.translation.x
+                # goal.target_pose.pose.position.y = trans.transform.translation.y
                 # goal.target_pose.pose.position.z = 0.0
 
-                # 设置新的朝向
-                current_rot = [
-                    trans.transform.rotation.x,
-                    trans.transform.rotation.y,
-                    trans.transform.rotation.z,
-                    trans.transform.rotation.w
-                ]
+                设置当前位置为目标点（基于机器人本地坐标系时使用）
+                goal.target_pose.pose.position.x = 0.0
+                goal.target_pose.pose.position.y = 0.0
+                goal.target_pose.pose.position.z = 0.0
 
-                # 计算目标朝向
-                target_quaternion = transformations.quaternion_multiply(
-                    current_rot,
-                    transformations.quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw
-                )
+                # # 设置新的朝向
+                # current_rot = [
+                #     trans.transform.rotation.x,
+                #     trans.transform.rotation.y,
+                #     trans.transform.rotation.z,
+                #     trans.transform.rotation.w
+                # ]
+
+                # # 计算目标朝向
+                # target_quaternion = transformations.quaternion_multiply(
+                #     current_rot,
+                #     transformations.quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw
+                # )
 
                 # 设置位姿，使用四元数
-                # target_quaternion = quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw（基于机器人本地坐标系时使用）
+                target_quaternion = transformations.quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw（基于机器人本地坐标系时使用）
                 goal.target_pose.pose.orientation.x = target_quaternion[0]
                 goal.target_pose.pose.orientation.y = target_quaternion[1]
                 goal.target_pose.pose.orientation.z = target_quaternion[2]
@@ -214,11 +214,11 @@ class AudioRosBridge:
 
                 return True
 
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException,
-                    tf2_ros.ExtrapolationException) as e:
-                rospy.logerr(f"TF查找失败: {e}")
-                self.async_speak("导航失败")
-                return False
+            # except (tf2_ros.LookupException, tf2_ros.ConnectivityException,
+            #         tf2_ros.ExtrapolationException) as e:
+            #     rospy.logerr(f"TF查找失败: {e}")
+            #     self.async_speak("导航失败")
+            #     return False
 
         except Exception as e:
             rospy.logerr(f"导航过程出错: {e}")
