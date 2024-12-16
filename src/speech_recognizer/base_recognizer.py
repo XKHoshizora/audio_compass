@@ -6,7 +6,7 @@ import rospy
 import pyaudio
 import tkinter as tk
 from tkinter import scrolledtext
-from threading import Lock
+from threading import Lock, Thread
 import datetime
 
 
@@ -22,7 +22,10 @@ class BaseRecognizer:
         self.log_lock = Lock()
 
         if self.use_window:
-            self._setup_window()
+            # 在单独的线程中运行GUI
+            self.gui_thread = Thread(target=self._setup_window)
+            self.gui_thread.daemon = True
+            self.gui_thread.start()
 
         # 检查音频输入设备
         if not self._check_audio_input():
@@ -38,8 +41,7 @@ class BaseRecognizer:
         self.window.geometry("600x400")
 
         # 创建文本区域
-        self.text_area = scrolledtext.ScrolledText(
-            self.window, width=70, height=20)
+        self.text_area = scrolledtext.ScrolledText(self.window, width=70, height=20)
         self.text_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
         # 配置标签颜色
@@ -48,18 +50,20 @@ class BaseRecognizer:
         self.text_area.tag_config("ERROR", foreground="red")
         self.text_area.tag_config("SPEECH", foreground="blue")
 
-        # 启动窗口更新
-        self._update_window()
+        # 启动主循环
+        self.window.mainloop()
 
-    def _update_window(self):
-        """更新窗口"""
-        if self.window:
-            try:
-                self.window.update()
-                # 每100ms更新一次
-                self.window.after(100, self._update_window)
-            except tk.TkError:
-                pass
+    def _update_text_area(self, message, level, speech):
+        """在主线程中更新文本区域"""
+        try:
+            self.text_area.insert(tk.END, message + "\n")
+            if speech:
+                self.text_area.tag_add("SPEECH", "end-2c linestart", "end-1c")
+            else:
+                self.text_area.tag_add(level, "end-2c linestart", "end-1c")
+            self.text_area.see(tk.END)
+        except Exception:
+            pass
 
     def _log(self, message, level="INFO", speech=False):
         """内部日志记录函数"""
@@ -67,19 +71,12 @@ class BaseRecognizer:
         formatted_msg = f"[{timestamp}] {message}"
 
         # GUI日志
-        if self.use_window and self.text_area:
-            with self.log_lock:
-                try:
-                    self.text_area.insert(tk.END, formatted_msg + "\n")
-                    if speech:
-                        self.text_area.tag_add(
-                            "SPEECH", "end-2c linestart", "end-1c")
-                    else:
-                        self.text_area.tag_add(
-                            level, "end-2c linestart", "end-1c")
-                    self.text_area.see(tk.END)
-                except tk.TkError:
-                    pass
+        if self.use_window and self.text_area and self.window:
+            try:
+                with self.log_lock:
+                    self.window.after(0, self._update_text_area, formatted_msg, level, speech)
+            except Exception as e:
+                pass
 
     def log_err(self, message, speech=False):
         """记录错误日志"""
@@ -127,6 +124,7 @@ class BaseRecognizer:
             self.p.terminate()
         if self.window:
             try:
+                self.window.quit()
                 self.window.destroy()
             except:
                 pass
