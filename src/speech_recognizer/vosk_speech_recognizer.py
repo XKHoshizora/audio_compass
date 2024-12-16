@@ -59,26 +59,31 @@ class VoskSpeechRecognizer(BaseRecognizer):
             # 上上一级目录
             parents_dir = current_dir.parents[2]
             # 模型路径
-            model_path = str(parents_dir / 'models')
+            model_path = parents_dir / 'models'
 
             # 加载 Vosk 模型
             if self.language == 'en-US':
-                self.model = Model(str(model_path / 'vosk-model-en-us-0.22'))
+                self.model = Model(f"{model_path}/vosk-model-en-us-0.22")
             elif self.language == 'ja-JP':
-                self.model = Model(str(model_path / 'vosk-model-ja-0.22'))
+                self.model = Model(f"{model_path}/vosk-model-ja-0.22")
             elif self.language == 'zh-CN':
-                self.model = Model(str(model_path / 'vosk-model-cn-0.22'))
+                self.model = Model(f"{model_path}/vosk-model-cn-0.22")
             else:
                 self.log_err(
                     f"不支持的语言: {self.language}，已默认设置为 'en-US'。其他语言请选择 'en-US', 'ja-JP' 或 'zh-CN' 。",
                     show_terminal=True
                 )
                 self.language = 'en-US'
-                self.model = Model(str(model_path / 'vosk-model-en-us-0.22'))
+                self.model = Model(f"{model_path}/vosk-model-en-us-0.22")
 
             self.log_info(f"Vosk 模型已加载: {self.model}")
 
-            self.recognizer = KaldiRecognizer(self.model, self.RATE)
+            # 初始化语音识别器
+            try:
+                self.recognizer = KaldiRecognizer(self.model, self.RATE)
+            except Exception as e:
+                self.log_err(f"KaldiRecognizer 初始化失败: {str(e)}")
+                raise
 
             self.log_info("Vosk Speech Recognizer initialized")
 
