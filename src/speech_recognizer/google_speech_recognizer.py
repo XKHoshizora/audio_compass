@@ -17,6 +17,15 @@ class GoogleSpeechRecognizer(BaseRecognizer):
         try:
             super().__init__()  # 调用基类初始化来检查设备
 
+            # 添加自定义头部信息
+            import platform
+            self.recognizer = sr.Recognizer()
+            self.recognizer.headers = {
+                'User-Agent': f'Mozilla/5.0 ({platform.system()}; {platform.machine()}) speech_recognition/3.8.1',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5'
+            }
+
             # 添加网络检查
             if not self.check_network_connection():
                 self.log_err("网络连接失败，无法启动在线语音识别系统", show_terminal=True)
@@ -89,45 +98,41 @@ class GoogleSpeechRecognizer(BaseRecognizer):
                     audio = self.recognizer.listen(
                         source, timeout=5, phrase_time_limit=5)
 
-                    # 使用识别器进行语音识别
                     try:
-                        transcribed_text = self.recognizer.recognize_google(
-                            audio, self.language)
+                        # 初始化 transcribed_text
+                        transcribed_text = ""
 
-                        # 如果识别到文本，显示出来
-                        if transcribed_text.strip():
-                            # self.log_info(f"识别结果: {transcribed_text}")
-                            self.log_speech(f"识别结果: {transcribed_text}")
-
-                    except sr.RequestError as e:
-                        # 添加详细的错误诊断
-                        error_msg = str(e)
-                        self.log_err(f"Google Speech API 请求失败: {error_msg}")
-                        self.log_err(f"当前语言设置: {self.language}")
-
-                        # 检查网络连接
+                        # 检查网络连接和API访问
                         try:
                             import urllib.request
                             urllib.request.urlopen('http://www.google.com', timeout=1)
-                            self.log_info("Google 服务器可访问")
+                            self.log_info("检查Google服务器连接...", show_terminal=False)
                         except Exception as e:
                             self.log_err(f"无法访问 Google 服务器: {str(e)}")
+                            continue
 
-                        # 检查请求详情
-                        if hasattr(e, 'response'):
-                            self.log_err(f"响应状态码: {e.response.status_code}")
-                            self.log_err(f"响应内容: {e.response.text}")
-
-                        # 检查是否包含触发词
-                        if any(re.search(pattern, transcribed_text) for pattern in self.trigger_patterns):
-                            self.log_warm("检测到触发词，发布方位信息...")
-                            # 发布导航方向消息
-                            self.publish_speech_direction(transcribed_text, -math.pi / 2)  # 设置方向为正右
+                        # 尝试使用不同的语言代码格式
+                        try_languages = [self.language, self.language.split('-')[0]]
+                        for lang in try_languages:
+                            try:
+                                transcribed_text = self.recognizer.recognize_google(
+                                    audio, language=lang)
+                                if transcribed_text.strip():
+                                    self.log_speech(f"识别结果: {transcribed_text}")
+                                    # 如果成功，检查触发词
+                                    if any(re.search(pattern, transcribed_text) for pattern in self.trigger_patterns):
+                                        self.log_info("检测到触发词，发布方位信息...")
+                                        self.publish_speech_direction(transcribed_text, -math.pi / 2)
+                                break  # 如果成功则跳出循环
+                            except sr.RequestError as e:
+                                self.log_err(f"使用语言 {lang} 请求失败: {str(e)}")
+                                continue
 
                     except sr.UnknownValueError:
                         self.log_warn("无法理解音频")
                     except sr.RequestError as e:
-                        self.log_err(f"无法请求结果; {e}", show_terminal=True)
+                        self.log_err(f"Google Speech API 请求失败: {str(e)}")
+                        self.log_err(f"当前语言设置: {self.language}")
 
                 except sr.WaitTimeoutError:
                     self.log_info("监听超时，未检测到语音")
