@@ -12,9 +12,9 @@ class SpeechGenerator:
         self.engine = None
         self.voices = []
         self.voice_settings = {
-            'en': {'voice_id': None, 'rate': 200},
-            'zh': {'voice_id': None, 'rate': 200},
-            'ja': {'voice_id': None, 'rate': 200}
+            'en': {'voice_id': 'en-US-JennyNeural', 'rate': 0},  # 正常语速
+            'zh': {'voice_id': 'zh-CN-XiaoxiaoNeural', 'rate': 0},  # 正常语速
+            'ja': {'voice_id': 'ja-JP-NanamiNeural', 'rate': 0}  # 正常语速
         }
         self.is_engine_ready = False
         self.use_edge_tts = platform.system() == "Linux"  # Ubuntu切换为Edge-TTS
@@ -95,11 +95,19 @@ class SpeechGenerator:
             return False
 
         try:
+            # 获取语音设置
             settings = self.voice_settings.get(language, self.voice_settings['en'])
             voice_id = settings['voice_id']
-            # 确保 rate 为字符串格式
-            rate = f"{settings['rate']}%" if isinstance(settings['rate'], int) else settings['rate']
 
+            # 修正 rate 参数，确保是字符串并符合 Edge-TTS 格式
+            if isinstance(settings['rate'], int):  # 如果是整数，转换为 Edge-TTS 需要的 "+200%" 格式
+                rate = f"+{settings['rate']}%"
+            elif isinstance(settings['rate'], str) and settings['rate'].startswith(("+", "-", "0")):
+                rate = settings['rate']
+            else:
+                rate = "+0%"  # 默认语速
+
+            # 执行语音合成
             communicate = edge_tts.Communicate(text=text, voice=voice_id, rate=rate)
             output_file = "/tmp/output.mp3"  # 临时存储生成的音频
             await communicate.save(output_file)
