@@ -42,6 +42,7 @@ class VoskSpeechRecognizer(BaseRecognizer):
                 r'えみ ちゃん',
                 r'レミ ちゃん',
                 r'パッ クン',
+                r'瑠美ちゃん',
                 # 添加其他模式...
             ]
 
