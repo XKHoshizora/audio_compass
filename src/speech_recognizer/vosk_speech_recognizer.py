@@ -57,7 +57,7 @@ class VoskSpeechRecognizer(BaseRecognizer):
             # 当前脚本所在的目录
             current_dir = Path(__file__).parent
             # 上上一级目录
-            parents_dir = current_dir.parents[2]
+            parents_dir = current_dir.parents[1]
             # 模型路径
             model_path = parents_dir / 'models'
 
