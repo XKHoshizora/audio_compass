@@ -72,6 +72,8 @@ system_deps=(
     "ros-noetic-tf2-geometry-msgs"
     "python3-tf2-geometry-msgs"
     "flac"
+    "mpg123"  # 用于播放 Edge-TTS 生成的 MP3 文件
+    "alsa-utils"  # 提供 aplay 命令以检查音频输出设备
 )
 
 for dep in "${system_deps[@]}"; do
@@ -91,6 +93,7 @@ python3 -m pip install --upgrade pip
 print_msg $YELLOW "安装Python包..."
 python_deps=(
     "pyttsx3"
+    "edge-tts"  # 用于 Ubuntu 系统的高质量语音合成
     "pyaudio"
     "vosk"
     "SpeechRecognition"
