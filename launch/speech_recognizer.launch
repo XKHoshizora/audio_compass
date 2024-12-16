@@ -5,6 +5,9 @@
         <param name="respawn" value="true"/>
         <param name="respawn_delay" value="5"/>
 
+        <!-- 调试模式参数 -->
+        <param name="debug" value="false"/>  <!-- 设置为 true 时显示调试信息 -->
+
         <!-- 是否使用独立窗口显示日志 -->
         <param name="use_window" value="true"/>
         <!-- 是否同时在终端显示日志 -->

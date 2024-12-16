@@ -102,14 +102,15 @@ class GoogleSpeechRecognizer(BaseRecognizer):
                         # 初始化 transcribed_text
                         transcribed_text = ""
 
-                        # 检查网络连接和API访问
-                        try:
-                            import urllib.request
-                            urllib.request.urlopen('http://www.google.com', timeout=1)
-                            self.log_info("检查Google服务器连接...", show_terminal=False)
-                        except Exception as e:
-                            self.log_err(f"无法访问 Google 服务器: {str(e)}")
-                            continue
+                        # 只在调试模式下检查网络连接和API访问
+                        if self.debug:
+                            try:
+                                import urllib.request
+                                urllib.request.urlopen('http://www.google.com', timeout=1)
+                                self.log_info("检查Google服务器连接...", show_terminal=False)
+                            except Exception as e:
+                                self.log_err(f"无法访问 Google 服务器: {str(e)}")
+                                continue
 
                         # 尝试使用不同的语言代码格式
                         try_languages = [self.language, self.language.split('-')[0]]
@@ -129,7 +130,7 @@ class GoogleSpeechRecognizer(BaseRecognizer):
                                 continue
 
                     except sr.UnknownValueError:
-                        self.log_warn("无法理解音频")
+                        self.log_warn("无语音输入或无法理解音频")
                     except sr.RequestError as e:
                         self.log_err(f"Google Speech API 请求失败: {str(e)}")
                         self.log_err(f"当前语言设置: {self.language}")

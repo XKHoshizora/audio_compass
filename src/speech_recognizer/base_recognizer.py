@@ -14,6 +14,8 @@ class BaseRecognizer:
     """语音识别器的基类"""
 
     def __init__(self):
+        self.debug = rospy.get_param('~debug', False)  # 默认关闭调试模式
+
         # 窗口相关参数和初始化
         self.use_window = rospy.get_param('~use_window', False)  # 从ROS参数获取是否使用窗口
         self.show_terminal = rospy.get_param('~show_terminal', True)  # 默认显示日志到终端
