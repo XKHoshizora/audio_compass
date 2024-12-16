@@ -120,6 +120,7 @@ class AudioRosBridge:
 
             if response.success:
                 rospy.loginfo("导航已恢复")
+                self.async_speak("导航已恢复")
                 return True
             else:
                 rospy.logerr(f"恢复导航失败：{response.message}")
