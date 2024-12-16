@@ -24,21 +24,28 @@ check_command() {
 # 检查Python包是否已安装
 check_python_package() {
     local package=$1
+    local module=$1
+
+    # 特殊包名与模块名的映射
     case $package in
         "SpeechRecognition")
-            package="speech_recognition"
+            module="speech_recognition"
             ;;
         "openai-whisper")
-            package="whisper"
+            module="whisper"
             ;;
     esac
 
-    # if python3 -c "import $package" &> /dev/null; then
-    #     return 0
-    # fi
+    # 优先检查 pip 安装状态
     if python3 -m pip show $package &> /dev/null; then
         return 0
     fi
+
+    # 如果 pip 检查失败，再尝试直接导入模块检测
+    if python3 -c "import $module" &> /dev/null; then
+        return 0
+    fi
+
     return 1
 }
 
