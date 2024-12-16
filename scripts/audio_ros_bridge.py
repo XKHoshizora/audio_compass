@@ -5,6 +5,7 @@ import math
 import threading
 import rospy
 import actionlib
+import tf2_ros
 import tf.transformations as tf
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
@@ -18,9 +19,14 @@ class AudioRosBridge:
     def __init__(self):
         rospy.init_node('audio_ros_bridge', anonymous=True)
 
+        # 初始化 TF2
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
         # 初始化 move_base
         # 创建 move_base 的 Action Client
-        self.mb_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.mb_client = actionlib.SimpleActionClient(
+            'move_base', MoveBaseAction)
         rospy.loginfo("等待 move_base 动作服务器...")
         self.mb_client.wait_for_server()
         rospy.loginfo("move_base 动作服务器已连接.")
@@ -32,7 +38,8 @@ class AudioRosBridge:
 
         # 序列导航服务
         rospy.wait_for_service('/wp_nav_controller/sequence')
-        self.seq_client = rospy.ServiceProxy('/wp_nav_controller/sequence', SequenceCommand)
+        self.seq_client = rospy.ServiceProxy(
+            '/wp_nav_controller/sequence', SequenceCommand)
 
         # 初始化语音合成服务
         self.tts_thread = None
@@ -40,7 +47,8 @@ class AudioRosBridge:
         self.tts_client = rospy.ServiceProxy('text_to_speech', TextToSpeech)
 
         # 订阅语音识别结果
-        self.sub = rospy.Subscriber('speech_direction', SpeechDirection, self.speech_recognition_callback)
+        self.sub = rospy.Subscriber(
+            'speech_direction', SpeechDirection, self.speech_recognition_callback)
 
         rospy.loginfo("Audio ROS Bridge 初始化完成")
 
@@ -129,50 +137,88 @@ class AudioRosBridge:
 
     def navigation_process(self, angle_rad):
         """控制机器人到指定目标点和位姿"""
+
+        # 将角度从度转换为弧度（如有需要）
+        # angle_rad = math.radians(angle_deg)
+
         try:
             # 暂停导航
             self.pause_navigation()
 
-            # 将角度从度转换为弧度
-            # angle_rad = math.radians(angle_deg)
-
             # 创建目标姿态
             goal = MoveBaseGoal()
-            goal.target_pose.header.frame_id = "base_link"  # 基于机器人本地坐标系
+            # goal.target_pose.header.frame_id = "base_link"  # 基于机器人本地坐标系
+            goal.target_pose.header.frame_id = "map"  # 基于地图坐标系
             goal.target_pose.header.stamp = rospy.Time.now()
 
-            # 设置目标点
-            goal.target_pose.pose.position.x = 0.0
-            goal.target_pose.pose.position.y = 0.0
-            goal.target_pose.pose.position.z = 0.0
+            # 获取机器人当前位置
+            try:
+                trans = self.tf_buffer.lookup_transform(
+                    'map',
+                    'base_link',
+                    rospy.Time(),
+                    rospy.Duration(1.0)
+                )
 
-            # 设置位姿，使用四元数
-            quaternion = tf.quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw
-            goal.target_pose.pose.orientation.x = quaternion[0]
-            goal.target_pose.pose.orientation.y = quaternion[1]
-            goal.target_pose.pose.orientation.z = quaternion[2]
-            goal.target_pose.pose.orientation.w = quaternion[3]
+                # 使用当前位置
+                goal.target_pose.pose.position.x = trans.transform.translation.x
+                goal.target_pose.pose.position.y = trans.transform.translation.y
+                goal.target_pose.pose.position.z = 0.0
 
-            # 发送目标
-            rospy.loginfo(f"发送导航目标: {math.degrees(angle_rad)} 度")
-            self.async_speak("开始转向")
-            self.mb_client.send_goal(goal)
+                # 设置当前位置为目标点（基于机器人本地坐标系时使用）
+                # goal.target_pose.pose.position.x = 0.0
+                # goal.target_pose.pose.position.y = 0.0
+                # goal.target_pose.pose.position.z = 0.0
 
-            # 等待结果
-            self.mb_client.wait_for_result()
-            result = self.mb_client.get_result()
-            if result:
-                rospy.loginfo("导航成功")
-                self.async_speak("导航成功")
+                # 设置新的朝向
+                current_rot = [
+                    trans.transform.rotation.x,
+                    trans.transform.rotation.y,
+                    trans.transform.rotation.z,
+                    trans.transform.rotation.w
+                ]
 
-                # 执行一些操作并等待完成（如购买东西、播放视频等）
-                rospy.sleep(5)
-            else:
-                rospy.logerr("导航失败")
+                # 计算目标朝向
+                target_quaternion = tf.transformations.quaternion_multiply(
+                    current_rot,
+                    tf.transformations.quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw
+                )
+
+                # 设置位姿，使用四元数
+                # target_quaternion = tf.quaternion_from_euler(0, 0, angle_rad)  # Roll, Pitch, Yaw（基于机器人本地坐标系时使用）
+                goal.target_pose.pose.orientation.x = target_quaternion[0]
+                goal.target_pose.pose.orientation.y = target_quaternion[1]
+                goal.target_pose.pose.orientation.z = target_quaternion[2]
+                goal.target_pose.pose.orientation.w = target_quaternion[3]
+
+                # 发送目标
+                rospy.loginfo(f"发送导航目标: {math.degrees(angle_rad)} 度")
+                self.async_speak("开始转向")
+                self.mb_client.send_goal(goal)
+
+                # 等待结果
+                self.mb_client.wait_for_result()
+                result = self.mb_client.get_result()
+                if result:
+                    rospy.loginfo("导航成功")
+                    self.async_speak("导航成功")
+
+                    # 执行一些操作并等待完成（如购买东西、播放视频等）
+                    rospy.sleep(5)
+                else:
+                    rospy.logerr("导航失败")
+                    self.async_speak("导航失败")
+
+                # 恢复导航
+                self.resume_navigation()
+
+                return True
+
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException,
+                    tf2_ros.ExtrapolationException) as e:
+                rospy.logerr(f"TF查找失败: {e}")
                 self.async_speak("导航失败")
-
-            # 恢复导航
-            self.resume_navigation()
+                return False
 
         except Exception as e:
             rospy.logerr(f"导航过程出错: {e}")
