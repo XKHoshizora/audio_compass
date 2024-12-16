@@ -19,7 +19,7 @@ class GoogleSpeechRecognizer(BaseRecognizer):
 
             # 添加网络检查
             if not self.check_network_connection():
-                self.log_err("网络连接失败，无法启动在线语音识别系统")
+                self.log_err("网络连接失败，无法启动在线语音识别系统", show_terminal=True)
                 return
 
             # 创建发布者
@@ -51,7 +51,7 @@ class GoogleSpeechRecognizer(BaseRecognizer):
             self.log_info("Google Speech Recognizer initialized")
 
         except Exception as e:
-            self.log_err(f"Google Speech Recognizer 初始化失败: {str(e)}")
+            self.log_err(f"Google Speech Recognizer 初始化失败: {str(e)}", show_terminal=True)
 
     def check_network_connection(self):
         """
@@ -68,9 +68,9 @@ class GoogleSpeechRecognizer(BaseRecognizer):
                 self.log_info("网络连接正常")
                 return True
         except socket.timeout:
-            self.log_err("网络连接超时，请检查网络")
+            self.log_err("网络连接超时，请检查网络", show_terminal=True)
         except socket.error as e:
-            self.log_err(f"网络连接失败: {e}")
+            self.log_err(f"网络连接失败: {e}", show_terminal=True)
         return False
 
     def speech_recognize(self):
@@ -107,12 +107,12 @@ class GoogleSpeechRecognizer(BaseRecognizer):
                     except sr.UnknownValueError:
                         self.log_warn("无法理解音频")
                     except sr.RequestError as e:
-                        self.log_err(f"无法请求结果; {e}")
+                        self.log_err(f"无法请求结果; {e}", show_terminal=True)
 
                 except sr.WaitTimeoutError:
                     self.log_info("监听超时，未检测到语音")
                 except Exception as e:
-                    self.log_err(f"音频处理出错: {str(e)}")
+                    self.log_err(f"音频处理出错: {str(e)}", show_terminal=True)
 
                 self.rate.sleep()
 

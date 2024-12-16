@@ -61,7 +61,9 @@ class VoskSpeechRecognizer(BaseRecognizer):
                 self.model = Model("./models/vosk-model-cn-0.22")
             else:
                 self.log_err(
-                    f"不支持的语言: {self.language}，已默认设置为 'en-US'。其他语言请选择 'en-US', 'ja-JP' 或 'zh-CN' 。")
+                    f"不支持的语言: {self.language}，已默认设置为 'en-US'。其他语言请选择 'en-US', 'ja-JP' 或 'zh-CN' 。",
+                    show_terminal=True
+                )
                 self.language = 'en-US'
                 self.model = Model("./models/vosk-model-en-us-0.22")
 
@@ -72,7 +74,8 @@ class VoskSpeechRecognizer(BaseRecognizer):
             self.log_info("Vosk Speech Recognizer initialized")
 
         except Exception as e:
-            self.log_err(f"Vosk Speech Recognizer 初始化失败: {str(e)}")
+            self.log_err(
+                f"Vosk Speech Recognizer 初始化失败: {str(e)}", show_terminal=True)
 
     def start_audio_stream(self):
         """初始化并启动音频流"""
@@ -107,13 +110,14 @@ class VoskSpeechRecognizer(BaseRecognizer):
                         if any(re.search(pattern, transcribed_text) for pattern in self.trigger_patterns):
                             self.log_warn("检测到触发词，发布方位信息...")
                             # 发布导航方向消息
-                            self.publish_speech_direction(transcribed_text, -math.pi / 2)  # 设置方向为正右
+                            self.publish_speech_direction(
+                                transcribed_text, -math.pi / 2)  # 设置方向为正右
                 else:
                     # 如果需要，可以处理部分结果
                     pass
 
             except Exception as e:
-                self.log_err(f"音频处理出错: {str(e)}")
+                self.log_err(f"音频处理出错: {str(e)}", show_terminal=True)
                 self.rate.sleep()
         self.stream.stop_stream()
 
@@ -144,7 +148,7 @@ class VoskSpeechRecognizer(BaseRecognizer):
             self.log_info("接收到停止信号，正在关闭语音识别系统...")
             self.cleanup()
         except Exception as e:
-            self.log_err(f"语音识别系统运行出错: {str(e)}")
+            self.log_err(f"语音识别系统运行出错: {str(e)}", show_terminal=True)
             self.cleanup()
 
     def cleanup(self):
