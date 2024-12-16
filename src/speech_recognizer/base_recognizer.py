@@ -1,16 +1,105 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""Speech Recognizer Base Class"""
 import rospy
 import pyaudio
+import tkinter as tk
+from tkinter import scrolledtext
+from threading import Lock
+import datetime
+
 
 class BaseRecognizer:
     """语音识别器的基类"""
 
     def __init__(self):
+        # 窗口相关参数和初始化
+        self.use_window = rospy.get_param(
+            '~use_window', False)  # 从ROS参数获取是否使用窗口
+        self.window = None
+        self.text_area = None
+        self.log_lock = Lock()
+
+        if self.use_window:
+            self._setup_window()
+
         # 检查音频输入设备
         if not self._check_audio_input():
-            rospy.logerr("未检测到麦克风设备")
+            self.log_err("未检测到麦克风设备")
             raise RuntimeError("未检测到麦克风设备")
 
         self.p = pyaudio.PyAudio()
+
+    def _setup_window(self):
+        """设置GUI窗口"""
+        self.window = tk.Tk()
+        self.window.title("语音识别日志")
+        self.window.geometry("600x400")
+
+        # 创建文本区域
+        self.text_area = scrolledtext.ScrolledText(
+            self.window, width=70, height=20)
+        self.text_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+
+        # 配置标签颜色
+        self.text_area.tag_config("INFO", foreground="black")
+        self.text_area.tag_config("WARN", foreground="orange")
+        self.text_area.tag_config("ERROR", foreground="red")
+        self.text_area.tag_config("SPEECH", foreground="blue")
+
+        # 启动窗口更新
+        self._update_window()
+
+    def _update_window(self):
+        """更新窗口"""
+        if self.window:
+            try:
+                self.window.update()
+                # 每100ms更新一次
+                self.window.after(100, self._update_window)
+            except tk.TkError:
+                pass
+
+    def _log(self, message, level="INFO", speech=False):
+        """内部日志记录函数"""
+        timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+        formatted_msg = f"[{timestamp}] {message}"
+
+        # GUI日志
+        if self.use_window and self.text_area:
+            with self.log_lock:
+                try:
+                    self.text_area.insert(tk.END, formatted_msg + "\n")
+                    if speech:
+                        self.text_area.tag_add(
+                            "SPEECH", "end-2c linestart", "end-1c")
+                    else:
+                        self.text_area.tag_add(
+                            level, "end-2c linestart", "end-1c")
+                    self.text_area.see(tk.END)
+                except tk.TkError:
+                    pass
+
+    def log_err(self, message, speech=False):
+        """记录错误日志"""
+        rospy.logerr(message)
+        self._log(message, "ERROR", speech)
+
+    def log_warn(self, message, speech=False):
+        """记录警告日志"""
+        rospy.logwarn(message)
+        self._log(message, "WARN", speech)
+
+    def log_info(self, message, speech=False):
+        """记录信息日志"""
+        rospy.loginfo(message)
+        self._log(message, "INFO", speech)
+
+    def log_speech(self, message, speech=True):
+        """记录语音识别结果"""
+        rospy.loginfo(message)
+        self._log(message, "INFO", speech)
 
     def _check_audio_input(self):
         """检查是否有可用的麦克风设备"""
@@ -23,16 +112,21 @@ class BaseRecognizer:
             for i in range(input_device_count):
                 device_info = p.get_device_info_by_index(i)
                 if device_info['maxInputChannels'] > 0:
-                    rospy.loginfo(f"找到麦克风设备: {device_info['name']}")
+                    self.log_info(f"找到麦克风设备: {device_info['name']}")
                     found_input = True
                     break
 
             p.terminate()
             return found_input
         except Exception as e:
-            rospy.logerr(f"检查麦克风设备时出错: {e}")
+            self.log_err(f"检查麦克风设备时出错: {e}")
             return False
 
     def cleanup(self):
         if hasattr(self, 'p'):
             self.p.terminate()
+        if self.window:
+            try:
+                self.window.destroy()
+            except:
+                pass

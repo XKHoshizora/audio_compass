@@ -27,11 +27,11 @@ class WhisperSpeechRecognizer(BaseRecognizer):
 
             # 设置语言
             self.language = language.split('-')[0].lower()  # 转换为 Whisper 支持的格式（如 'en'）
-            rospy.loginfo(f"语言已设置为: {self.language}")
+            self.log_info(f"语言已设置为: {self.language}")
 
             # 设置设备
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
-            rospy.loginfo(f"使用设备: {self.device}")
+            self.log_info(f"使用设备: {self.device}")
 
             # 加载模型，可选：tiny, base, small, medium, large
             self.model = whisper.load_model("tiny", device=self.device)
@@ -69,10 +69,10 @@ class WhisperSpeechRecognizer(BaseRecognizer):
             # 系统状态
             self.is_running = True
 
-            rospy.loginfo("Whisper Speech Recognizer initialized")
+            self.log_info("Whisper Speech Recognizer initialized")
 
         except Exception as e:
-            rospy.logerr(f"Whisper Speech Recognizer 初始化失败: {str(e)}")
+            self.log_err(f"Whisper Speech Recognizer 初始化失败: {str(e)}")
 
     def start_audio_stream(self):
         """初始化并启动音频流"""
@@ -83,7 +83,7 @@ class WhisperSpeechRecognizer(BaseRecognizer):
             input=True,
             frames_per_buffer=self.CHUNK
         )
-        rospy.loginfo("音频流已启动")
+        self.log_info("音频流已启动")
 
     def publish_speech_direction(self, recognized_text, direction):
         """发布导航方向消息"""
@@ -119,16 +119,16 @@ class WhisperSpeechRecognizer(BaseRecognizer):
 
                 # 如果识别到文本，显示出来
                 if transcribed_text.strip():
-                    rospy.loginfo(f"识别结果: {transcribed_text}")
+                    self.log_speech(f"识别结果: {transcribed_text}")
 
                     # 检查是否包含触发词
                     if any(re.search(pattern, transcribed_text) for pattern in self.trigger_patterns):
-                        rospy.loginfo("检测到触发词，发布方位信息...")
+                        self.log_warn("检测到触发词，发布方位信息...")
                         # 发布导航方向消息
                         self.publish_speech_direction(transcribed_text, -math.pi / 2)  # 设置方向为正右
 
             except Exception as e:
-                rospy.logerr(f"音频处理出错: {str(e)}")
+                self.log_err(f"音频处理出错: {str(e)}")
                 self.rate.sleep()
 
         self.stream.stop_stream()
@@ -136,7 +136,7 @@ class WhisperSpeechRecognizer(BaseRecognizer):
     def start(self):
         """启动语音识别系统"""
         try:
-            rospy.loginfo("启动语音识别系统...")
+            self.log_info("启动语音识别系统...")
             self.start_audio_stream()
 
             # 启动音频处理线程
@@ -149,10 +149,10 @@ class WhisperSpeechRecognizer(BaseRecognizer):
                 self.rate.sleep()
 
         except KeyboardInterrupt:
-            rospy.loginfo("接收到停止信号，正在关闭语音识别系统...")
+            self.log_info("接收到停止信号，正在关闭语音识别系统...")
             self.cleanup()
         except Exception as e:
-            rospy.logerr(f"语音识别系统运行出错: {str(e)}")
+            self.log_err(f"语音识别系统运行出错: {str(e)}")
             self.cleanup()
 
     def cleanup(self):
@@ -162,7 +162,7 @@ class WhisperSpeechRecognizer(BaseRecognizer):
             self.stream.stop_stream()
             self.stream.close()
         self.p.terminate()
-        rospy.loginfo("语音识别系统已关闭")
+        self.log_info("语音识别系统已关闭")
 
 
 if __name__ == "__main__":

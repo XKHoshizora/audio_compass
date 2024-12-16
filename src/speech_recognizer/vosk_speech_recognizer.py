@@ -26,7 +26,7 @@ class VoskSpeechRecognizer(BaseRecognizer):
 
             # 设置需要识别的语言
             self.language = language
-            rospy.loginfo(f"语言已设置为: {self.language}")
+            self.log_info(f"语言已设置为: {self.language}")
 
             # 扩展触发词模式，包括更多可能的变体
             self.trigger_patterns = trigger_patterns or [
@@ -60,19 +60,19 @@ class VoskSpeechRecognizer(BaseRecognizer):
             elif self.language == 'zh-CN':
                 self.model = Model("./models/vosk-model-cn-0.22")
             else:
-                rospy.logerr(
+                self.log_err(
                     f"不支持的语言: {self.language}，已默认设置为 'en-US'。其他语言请选择 'en-US', 'ja-JP' 或 'zh-CN' 。")
                 self.language = 'en-US'
                 self.model = Model("./models/vosk-model-en-us-0.22")
 
-            rospy.loginfo(f"Vosk 模型已加载: {self.model}")
+            self.log_info(f"Vosk 模型已加载: {self.model}")
 
             self.recognizer = KaldiRecognizer(self.model, self.RATE)
 
-            rospy.loginfo("Vosk Speech Recognizer initialized")
+            self.log_info("Vosk Speech Recognizer initialized")
 
         except Exception as e:
-            rospy.logerr(f"Vosk Speech Recognizer 初始化失败: {str(e)}")
+            self.log_err(f"Vosk Speech Recognizer 初始化失败: {str(e)}")
 
     def start_audio_stream(self):
         """初始化并启动音频流"""
@@ -84,7 +84,7 @@ class VoskSpeechRecognizer(BaseRecognizer):
             input=True,
             frames_per_buffer=self.CHUNK
         )
-        rospy.loginfo(f"音频流已启动")
+        self.log_info(f"音频流已启动")
 
     def speech_recognize(self):
         """处理音频流并识别语音"""
@@ -101,11 +101,11 @@ class VoskSpeechRecognizer(BaseRecognizer):
                     res = json.loads(result)
                     transcribed_text = res.get("text", "")
                     if transcribed_text.strip():
-                        rospy.loginfo(f"识别结果: {transcribed_text}")
+                        self.log_speech(f"识别结果: {transcribed_text}")
 
                         # 检查是否包含触发词
                         if any(re.search(pattern, transcribed_text) for pattern in self.trigger_patterns):
-                            rospy.loginfo("检测到触发词，发布方位信息...")
+                            self.log_warn("检测到触发词，发布方位信息...")
                             # 发布导航方向消息
                             self.publish_speech_direction(transcribed_text, -math.pi / 2)  # 设置方向为正右
                 else:
@@ -113,7 +113,7 @@ class VoskSpeechRecognizer(BaseRecognizer):
                     pass
 
             except Exception as e:
-                rospy.logerr(f"音频处理出错: {str(e)}")
+                self.log_err(f"音频处理出错: {str(e)}")
                 self.rate.sleep()
         self.stream.stop_stream()
 
@@ -128,7 +128,7 @@ class VoskSpeechRecognizer(BaseRecognizer):
     def start(self):
         """启动语音识别系统"""
         try:
-            rospy.loginfo("启动语音识别系统...")
+            self.log_info("启动语音识别系统...")
             self.start_audio_stream()
 
             # 启动音频处理线程
@@ -141,10 +141,10 @@ class VoskSpeechRecognizer(BaseRecognizer):
                 self.rate.sleep()
 
         except KeyboardInterrupt:
-            rospy.loginfo("接收到停止信号，正在关闭语音识别系统...")
+            self.log_info("接收到停止信号，正在关闭语音识别系统...")
             self.cleanup()
         except Exception as e:
-            rospy.logerr(f"语音识别系统运行出错: {str(e)}")
+            self.log_err(f"语音识别系统运行出错: {str(e)}")
             self.cleanup()
 
     def cleanup(self):
@@ -153,7 +153,7 @@ class VoskSpeechRecognizer(BaseRecognizer):
             self.stream.stop_stream()
             self.stream.close()
         self.p.terminate()
-        rospy.loginfo("语音识别系统已关闭")
+        self.log_info("语音识别系统已关闭")
 
 
 if __name__ == "__main__":
