@@ -165,7 +165,7 @@ class AudioRosBridge:
                 # goal.target_pose.pose.position.y = trans.transform.translation.y
                 # goal.target_pose.pose.position.z = 0.0
 
-                设置当前位置为目标点（基于机器人本地坐标系时使用）
+                # 设置当前位置为目标点（基于机器人本地坐标系时使用）
                 goal.target_pose.pose.position.x = 0.0
                 goal.target_pose.pose.position.y = 0.0
                 goal.target_pose.pose.position.z = 0.0
