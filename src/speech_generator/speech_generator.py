@@ -101,12 +101,6 @@ class SpeechGenerator:
             voice_id = settings['voice_id']
 
             # 修正 rate 参数，确保是字符串并符合 Edge-TTS 格式
-            # if isinstance(settings['rate'], int):  # 如果是整数，转换为 Edge-TTS 需要的 "+200%" 格式
-            #     rate = f"+{settings['rate']}%"
-            # elif isinstance(settings['rate'], str) and settings['rate'].startswith(("+", "-", "0")):
-            #     rate = settings['rate']
-            # else:
-            #     rate = "+0%"  # 默认语速
             rate = f"+{settings['rate']}%" if isinstance(settings['rate'], int) else settings['rate']
 
             # 执行语音合成
