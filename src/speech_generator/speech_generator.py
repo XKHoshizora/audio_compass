@@ -4,6 +4,7 @@ import platform
 import pyttsx3
 import asyncio
 import edge_tts
+import subprocess
 from std_srvs.srv import Empty, EmptyResponse
 from audio_compass.srv import TextToSpeech, TextToSpeechResponse
 
@@ -100,20 +101,25 @@ class SpeechGenerator:
             voice_id = settings['voice_id']
 
             # 修正 rate 参数，确保是字符串并符合 Edge-TTS 格式
-            if isinstance(settings['rate'], int):  # 如果是整数，转换为 Edge-TTS 需要的 "+200%" 格式
-                rate = f"+{settings['rate']}%"
-            elif isinstance(settings['rate'], str) and settings['rate'].startswith(("+", "-", "0")):
-                rate = settings['rate']
-            else:
-                rate = "+0%"  # 默认语速
+            # if isinstance(settings['rate'], int):  # 如果是整数，转换为 Edge-TTS 需要的 "+200%" 格式
+            #     rate = f"+{settings['rate']}%"
+            # elif isinstance(settings['rate'], str) and settings['rate'].startswith(("+", "-", "0")):
+            #     rate = settings['rate']
+            # else:
+            #     rate = "+0%"  # 默认语速
+            rate = f"+{settings['rate']}%" if isinstance(settings['rate'], int) else settings['rate']
 
             # 执行语音合成
             communicate = edge_tts.Communicate(text=text, voice=voice_id, rate=rate)
             output_file = "/tmp/output.mp3"  # 临时存储生成的音频
             await communicate.save(output_file)
 
-            # 播放音频
-            os.system(f"mpg123 {output_file}")
+            # 播放音频并隐藏 mpg123 的输出
+            subprocess.run(
+                ["mpg123", output_file],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
             return True
         except Exception as e:
             rospy.logerr(f"Edge-TTS转换错误: {str(e)}")
