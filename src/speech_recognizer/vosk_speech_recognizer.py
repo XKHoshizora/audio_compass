@@ -57,24 +57,24 @@ class VoskSpeechRecognizer(BaseRecognizer):
             # 当前脚本所在的目录
             current_dir = Path(__file__).parent
             # 上上一级目录
-            parent_dir = current_dir.parents[2]
+            parents_dir = current_dir.parents[2]
             # 模型路径
-            model_path = parent_dir / 'models'
+            model_path = str(parents_dir / 'models')
 
             # 加载 Vosk 模型
             if self.language == 'en-US':
-                self.model = Model(model_path / 'vosk-model-en-us-0.22')
+                self.model = Model(str(model_path / 'vosk-model-en-us-0.22'))
             elif self.language == 'ja-JP':
-                self.model = Model(model_path / 'vosk-model-ja-0.22')
+                self.model = Model(str(model_path / 'vosk-model-ja-0.22'))
             elif self.language == 'zh-CN':
-                self.model = Model(model_path / 'vosk-model-cn-0.22')
+                self.model = Model(str(model_path / 'vosk-model-cn-0.22'))
             else:
                 self.log_err(
                     f"不支持的语言: {self.language}，已默认设置为 'en-US'。其他语言请选择 'en-US', 'ja-JP' 或 'zh-CN' 。",
                     show_terminal=True
                 )
                 self.language = 'en-US'
-                self.model = Model(model_path / 'vosk-model-en-us-0.22')
+                self.model = Model(str(model_path / 'vosk-model-en-us-0.22'))
 
             self.log_info(f"Vosk 模型已加载: {self.model}")
 
