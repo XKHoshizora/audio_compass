@@ -99,6 +99,25 @@ class GoogleSpeechRecognizer(BaseRecognizer):
                             # self.log_info(f"识别结果: {transcribed_text}")
                             self.log_speech(f"识别结果: {transcribed_text}")
 
+                    except sr.RequestError as e:
+                        # 添加详细的错误诊断
+                        error_msg = str(e)
+                        self.log_err(f"Google Speech API 请求失败: {error_msg}")
+                        self.log_err(f"当前语言设置: {self.language}")
+
+                        # 检查网络连接
+                        try:
+                            import urllib.request
+                            urllib.request.urlopen('http://www.google.com', timeout=1)
+                            self.log_info("Google 服务器可访问")
+                        except Exception as e:
+                            self.log_err(f"无法访问 Google 服务器: {str(e)}")
+
+                        # 检查请求详情
+                        if hasattr(e, 'response'):
+                            self.log_err(f"响应状态码: {e.response.status_code}")
+                            self.log_err(f"响应内容: {e.response.text}")
+
                         # 检查是否包含触发词
                         if any(re.search(pattern, transcribed_text) for pattern in self.trigger_patterns):
                             self.log_warm("检测到触发词，发布方位信息...")
