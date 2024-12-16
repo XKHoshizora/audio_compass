@@ -7,6 +7,8 @@
 
         <!-- 是否使用独立窗口显示日志 -->
         <param name="use_window" value="true"/>
+        <!-- 是否同时在终端显示日志 -->
+        <param name="show_terminal" value="true"/>
 
         <!-- 配置语音识别类型 Options: google, vosk, whisper-->
         <param name="recognizer_type" value="google"/>

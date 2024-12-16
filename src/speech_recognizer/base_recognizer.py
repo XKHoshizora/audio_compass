@@ -15,8 +15,8 @@ class BaseRecognizer:
 
     def __init__(self):
         # 窗口相关参数和初始化
-        self.use_window = rospy.get_param(
-            '~use_window', False)  # 从ROS参数获取是否使用窗口
+        self.use_window = rospy.get_param('~use_window', False)  # 从ROS参数获取是否使用窗口
+        self.show_terminal = rospy.get_param('~show_terminal', True)  # 默认显示日志到终端
         self.window = None
         self.text_area = None
         self.log_lock = Lock()
@@ -80,22 +80,26 @@ class BaseRecognizer:
 
     def log_err(self, message, speech=False):
         """记录错误日志"""
-        rospy.logerr(message)
+        if self.show_terminal:
+            rospy.logerr(message)
         self._log(message, "ERROR", speech)
 
     def log_warn(self, message, speech=False):
         """记录警告日志"""
-        rospy.logwarn(message)
+        if self.show_terminal:
+            rospy.logwarn(message)
         self._log(message, "WARN", speech)
 
     def log_info(self, message, speech=False):
         """记录信息日志"""
-        rospy.loginfo(message)
+        if self.show_terminal:
+            rospy.loginfo(message)
         self._log(message, "INFO", speech)
 
     def log_speech(self, message, speech=True):
         """记录语音识别结果"""
-        rospy.loginfo(message)
+        if self.show_terminal:
+            rospy.loginfo(message)
         self._log(message, "INFO", speech)
 
     def _check_audio_input(self):
