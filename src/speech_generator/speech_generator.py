@@ -88,12 +88,10 @@ class SpeechGenerator:
             return False
 
         # 检测语言
-        detected_language = language or self.language_detector.detect_language(
-            text)
+        detected_language = language or self.language_detector.detect_language(text)
 
         # 获取语音设置
-        settings = self.config['tts_settings'].get(detected_language,
-                                                   self.config['tts_settings']['en'])
+        settings = self.config['tts_settings'].get(detected_language,  self.config['tts_settings']['en'])
 
         return self.engine.speak(
             text,
