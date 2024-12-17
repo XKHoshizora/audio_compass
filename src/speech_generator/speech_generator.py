@@ -66,8 +66,9 @@ class SpeechGenerator:
         """处理动态重配置请求"""
         for lang in ['en', 'zh', 'ja']:
             if lang in self.config['tts_settings']:
+                rate_value = "+" + str(config[f'{lang}_rate']) + "%" if config[f'{lang}_rate'] >= 0 else str(config[f'{lang}_rate']) + "%"
                 self.config['tts_settings'][lang].update({
-                    'rate': f"{config[f'{lang}_rate']}%",
+                    'rate': rate_value,
                     'volume': f"{config[f'{lang}_volume']}%"
                 })
         return config
