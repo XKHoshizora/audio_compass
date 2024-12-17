@@ -21,6 +21,10 @@ class SpeechGenerator:
     """语音生成器主类"""
 
     def __init__(self, config_path: str):
+        # 首先初始化ROS节点
+        rospy.init_node("speech_generator", anonymous=True)
+
+        # 然后加载配置和初始化其他组件
         self.config = self._load_config(config_path)
         self.cache = TTSCache()
         self.engine = self._create_engine()
@@ -29,9 +33,14 @@ class SpeechGenerator:
         # 设置动态重配置服务器
         self.dyn_server = Server(TTSConfig, self.dynamic_reconfigure_callback)
 
+        # 初始化服务
+        rospy.Service("/text_to_speech", TextToSpeech, self.handle_tts_request)
+        rospy.Service("/stop_tts", Empty, self.handle_tts_stop)
+
         # 定期清理缓存的计时器
-        rospy.Timer(rospy.Duration(3600),
-                    self._clean_cache_callback)  # 每小时清理一次
+        rospy.Timer(rospy.Duration(3600), self._clean_cache_callback)  # 每小时清理一次
+
+        rospy.loginfo("Speech Generator Node 初始化完成.")
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """加载配置文件"""
@@ -101,11 +110,18 @@ class SpeechGenerator:
 
     def run(self) -> None:
         """运行ROS节点"""
-        rospy.init_node("speech_generator")
-        rospy.Service("/text_to_speech", TextToSpeech, self.handle_tts_request)
-        rospy.Service("/stop_tts", Empty, self.handle_tts_stop)
-        rospy.loginfo("Speech Generator Node is ready.")
-        rospy.spin()
+        try:
+            rospy.spin()
+        except rospy.ROSInterruptException:
+            rospy.loginfo("Speech Generator Node 被中断.")
+        finally:
+            self.cleanup()
+
+    def cleanup(self):
+        """清理资源"""
+        if hasattr(self, 'engine'):
+            self.engine.stop()
+        rospy.loginfo("Speech Generator Node 已关闭.")
 
 
 if __name__ == "__main__":
