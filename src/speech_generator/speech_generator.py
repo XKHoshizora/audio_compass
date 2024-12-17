@@ -12,7 +12,7 @@ from audio_compass.srv import TextToSpeech, TextToSpeechResponse
 from dynamic_reconfigure.server import Server
 from audio_compass.cfg import TTSConfig
 from dynamic_reconfigure.encoding import extract_params
-from speech_generator.tts_engine import TTSEngine, EdgeTTSEngine, PyttsxEngine, CoquiTTSEngine, MozillaTTSEngine
+from speech_generator.tts_engine import TTSEngine, EdgeTTSEngine, PyttsxEngine#, CoquiTTSEngine, MozillaTTSEngine
 from speech_generator.tts_cache import TTSCache
 from speech_generator.language_detector import LanguageDetector
 
