@@ -51,6 +51,7 @@ class AudioRosBridge:
         """异步执行语音合成"""
         if self.tts_thread and self.tts_thread.is_alive():
             # 如果上一个语音还在播放，等待其完成，可能会导致导航控制流程有短暂延迟
+            rospy.logwarn("TTS 上一线程未结束，正在等待...")
             self.tts_thread.join()
 
         # 创建并启动新的语音播放线程
