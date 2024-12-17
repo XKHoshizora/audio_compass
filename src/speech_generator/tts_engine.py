@@ -62,6 +62,9 @@ class EdgeTTSEngine(TTSEngine):
 
     async def _async_speak(self, text: str, voice_id: str, rate: str, volume: str) -> bool:
         try:
+            if not volume.startswith('+') and not volume.startswith('-'):
+                volume = f"+{volume}" if volume.rstrip('%').isdigit() and int(volume.rstrip('%')) >= 100 else f"{int(volume.rstrip('%'))-100}%"
+
             output_file = Path("/tmp/output.mp3")
             communicate = edge_tts.Communicate(
                 text=text,

@@ -66,10 +66,14 @@ class SpeechGenerator:
         """处理动态重配置请求"""
         for lang in ['en', 'zh', 'ja']:
             if lang in self.config['tts_settings']:
-                rate_value = "+" + str(config[f'{lang}_rate']) + "%" if config[f'{lang}_rate'] >= 0 else str(config[f'{lang}_rate']) + "%"
+                # 正确格式化rate
+                rate_value = f"+{config[f'{lang}_rate']}%" if config[f'{lang}_rate'] >= 0 else f"{config[f'{lang}_rate']}%"
+                # 正确格式化volume (Edge TTS需要+/-格式)
+                volume_value = f"+{config[f'{lang}_volume']}%" if config[f'{lang}_volume'] >= 100 else f"{config[f'{lang}_volume']-100}%"
+
                 self.config['tts_settings'][lang].update({
                     'rate': rate_value,
-                    'volume': f"{config[f'{lang}_volume']}%"
+                    'volume': volume_value
                 })
         return config
 

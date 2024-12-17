@@ -3,15 +3,15 @@ tts_settings:
     en:
         voice_id: "en-US-JennyNeural"
         rate: "+0%"
-        volume: "100%"
+        volume: "+0%"
     zh:
         voice_id: "zh-CN-XiaoxiaoNeural"
         rate: "+0%"
-        volume: "100%"
+        volume: "+0%"
     ja:
         voice_id: "ja-JP-NanamiNeural"
         rate: "+0%"
-        volume: "100%"
+        volume: "+0%"
 
 cache_settings:
     max_age_days: 7
