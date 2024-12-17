@@ -102,9 +102,13 @@ class SpeechGenerator:
 
     def handle_tts_request(self, req: TextToSpeech) -> TextToSpeechResponse:
         """处理TTS服务请求"""
-        success = self.speak(req.text, req.language if req.language else None)
-        message = "Success" if success else "Failed"
-        return TextToSpeechResponse(success=success, message=message)
+        try:
+            success = self.speak(req.text, req.language if req.language else None)
+            message = "Success" if success else "Failed"
+            return TextToSpeechResponse(success=success, message=message)
+        except Exception as e:
+            rospy.logerr(f"TTS request failed: {str(e)}")
+            return TextToSpeechResponse(success=False, message=str(e))
 
     def handle_tts_stop(self, _: Empty) -> EmptyResponse:
         """处理停止TTS请求"""

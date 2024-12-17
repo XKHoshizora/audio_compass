@@ -7,14 +7,14 @@ from speech_recognizer import GoogleSpeechRecognizer, VoskSpeechRecognizer, Whis
 
 class SpeechRecognizer:
     """管理不同语音识别系统的ROS节点"""
-    
+
     # 支持的识别器类型
     SUPPORTED_RECOGNIZERS = {
         'google': GoogleSpeechRecognizer,
         'vosk': VoskSpeechRecognizer,
         'whisper': WhisperSpeechRecognizer
     }
-    
+
     # 支持的语言列表
     SUPPORTED_LANGUAGES = ['en-US', 'ja-JP', 'zh-CN']
 
@@ -30,11 +30,11 @@ class SpeechRecognizer:
         r'るみ ちゃん',
         # 可以根据需要添加更多...
     ]
-    
+
     def __init__(self):
         """初始化语音识别节点"""
         rospy.init_node('speech_recognizer', anonymous=True)
-        
+
         # 从参数服务器获取参数
         self.recognizer_type = rospy.get_param('~recognizer_type', 'google')
         self.language = rospy.get_param('~language', 'en-US')
@@ -42,16 +42,16 @@ class SpeechRecognizer:
         # 获取自定义触发词列表（如果有的话）
         custom_triggers = rospy.get_param('~trigger_patterns', None)
         self.trigger_patterns = custom_triggers if custom_triggers else self.DEFAULT_TRIGGER_PATTERNS
-        
+
         # 获取Whisper特定的参数（如果使用Whisper的话）
         self.whisper_model = rospy.get_param('~whisper_model', 'tiny')
-        
+
         # 验证参数
         self._validate_parameters()
-        
+
         # 初始化选定的语音识别系统
         self._initialize_recognizer()
-        
+
     def _validate_parameters(self):
         """验证launch文件中的参数"""
         if self.recognizer_type not in self.SUPPORTED_RECOGNIZERS:
@@ -59,13 +59,13 @@ class SpeechRecognizer:
             rospy.logerr(f"支持的类型包括: {list(self.SUPPORTED_RECOGNIZERS.keys())}")
             rospy.logerr("默认使用 'google'")
             self.recognizer_type = 'google'
-            
+
         if self.language not in self.SUPPORTED_LANGUAGES:
             rospy.logerr(f"不支持的语言: {self.language}")
             rospy.logerr(f"支持的语言包括: {self.SUPPORTED_LANGUAGES}")
             rospy.logerr("默认使用 'en-US'")
             self.language = 'en-US'
-            
+
     def _initialize_recognizer(self):
         """初始化选定的语音识别系统"""
         try:
@@ -81,19 +81,31 @@ class SpeechRecognizer:
             if self.recognizer_type == 'whisper':
                 init_params['model_name'] = self.whisper_model
 
-            self.recognizer = recognizer_class(**init_params)
+            # 尝试初始化主要识别器
+            try:
+                self.recognizer = recognizer_class(**init_params)
+            except Exception as e:
+                rospy.logerr(f"Primary recognizer {self.recognizer_type} failed: {e}")
+                # 如果主识别器失败,尝试回退到 Vosk
+                if self.recognizer_type != 'vosk':
+                    rospy.logwarn("Falling back to Vosk recognizer")
+                    self.recognizer_type = 'vosk'
+                    self.recognizer = VoskSpeechRecognizer(**init_params)
+                else:
+                    # 如果 Vosk 也失败,抛出异常
+                    raise
 
-            rospy.loginfo(f"已初始化 {self.recognizer_type} 语音识别器")
+            rospy.loginfo(f"成功初始化 {self.recognizer_type} 识别器")
             rospy.loginfo(f"使用语言: {self.language}")
             rospy.loginfo(f"触发词数量: {len(self.trigger_patterns)}")
 
             if self.recognizer_type == 'whisper':
                 rospy.loginfo(f"Whisper模型: {self.whisper_model}")
-                
+
         except Exception as e:
-            rospy.logerr(f"初始化 {self.recognizer_type} 识别器失败: {str(e)}")
+            rospy.logerr(f"所有识别器初始化失败: {str(e)}")
             raise
-            
+
     def run(self):
         """启动语音识别系统"""
         try:
@@ -101,7 +113,7 @@ class SpeechRecognizer:
         except Exception as e:
             rospy.logerr(f"运行语音识别器时出错: {str(e)}")
             self.cleanup()
-            
+
     def cleanup(self):
         """关闭时清理资源"""
         if hasattr(self, 'recognizer'):

@@ -177,13 +177,12 @@ class AudioRosBridge:
                 rospy.logerr("导航失败")
                 self.async_speak("导航失败")
 
-            # 恢复导航
-            self.resume_navigation()
-
-            return True
+            # 最后无论成功失败都恢复导航
+            return self.resume_navigation()
 
         except Exception as e:
             rospy.logerr(f"导航过程出错: {e}")
+            self.resume_navigation()  # 确保恢复导航
             return False
 
     def run(self):

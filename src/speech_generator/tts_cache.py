@@ -75,21 +75,19 @@ class TTSCache:
             return cache_path
 
     def clean_old_cache(self, max_age: float = 7 * 24 * 3600) -> None:
-        """清理旧的缓存文件"""
+        """基于使用频率和时间清理缓存"""
         current_time = rospy.get_time()
-        keys_to_remove = []
+        sorted_cache = sorted(self.cache_info.items(), key=lambda x: x[1].get('access_count', 0), reverse=True)
 
-        for cache_key, info in self.cache_info.items():
+        for cache_key, info in sorted_cache:
             file_path = self.cache_dir / f"{cache_key}.mp3"
-            if current_time - info['created_at'] > max_age:
+            file_age = current_time - info.get('created_at', 0)
+            if file_age > max_age:
                 try:
                     if file_path.exists():
                         file_path.unlink()
-                    keys_to_remove.append(cache_key)
+                    self.cache_info.pop(cache_key, None)
+                    rospy.loginfo(f"清理过期缓存: {file_path}")
                 except Exception as e:
-                    rospy.logwarn(f"Failed to remove old cache file: {e}")
-
-        for key in keys_to_remove:
-            self.cache_info.pop(key, None)
-
+                    rospy.logwarn(f"删除缓存文件失败: {e}")
         self._save_cache_info()

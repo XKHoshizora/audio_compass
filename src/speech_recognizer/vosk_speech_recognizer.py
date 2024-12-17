@@ -54,10 +54,9 @@ class VoskSpeechRecognizer(BaseRecognizer):
             self.RATE = 16000
             self.p = pyaudio.PyAudio()
 
-            # 当前脚本所在的目录
-            current_dir = Path(__file__).parent
-            # 模型路径
-            model_path = Path(rospy.get_param('~model_path', str(current_dir.parents[2] / "models")))
+            # 获取模型路径
+            default_model_path = str(Path(__file__).parents[2] / "models")
+            model_path = Path(rospy.get_param('~model_path', default_model_path))
 
             # 加载 Vosk 模型
             if self.language == 'en-US':
