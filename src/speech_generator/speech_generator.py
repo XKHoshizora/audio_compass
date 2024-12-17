@@ -12,7 +12,7 @@ from audio_compass.srv import TextToSpeech, TextToSpeechResponse
 from dynamic_reconfigure.server import Server
 from audio_compass.cfg import TTSConfig
 from dynamic_reconfigure.encoding import extract_params
-from speech_generator.tts_engine import TTSEngine, EdgeTTSEngine, PyttsxEngine
+from speech_generator.tts_engine import TTSEngine, EdgeTTSEngine, PyttsxEngine, CoquiTTSEngine, MozillaTTSEngine
 from speech_generator.tts_cache import TTSCache
 from speech_generator.language_detector import LanguageDetector
 
@@ -53,7 +53,14 @@ class SpeechGenerator:
 
     def _create_engine(self) -> TTSEngine:
         """创建TTS引擎实例"""
-        if platform.system() == "Linux":
+        # 获取TTS引擎类型
+        engine_type = rospy.get_param("~tts_engine", "edge")
+
+        if engine_type == "coqui":
+            engine = CoquiTTSEngine()
+        elif engine_type == "mozilla":
+            engine = MozillaTTSEngine()
+        elif engine_type == "edge":
             engine = EdgeTTSEngine(self.cache)
         else:
             engine = PyttsxEngine()

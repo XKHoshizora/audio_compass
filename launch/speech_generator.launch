@@ -1,6 +1,8 @@
 <launch>
     <!-- 加载配置文件参数 -->
     <arg name="config_path" default="$(find audio_compass)/config/tts_config.yaml"/>
+    <!-- TTS 引擎类型 可选: edge, coqui, mozilla, pyttsx3 -->
+    <arg name="tts_engine" default="edge"/>
 
     <!-- 启动语音生成节点 -->
     <node pkg="audio_compass" type="speech_generator_node.py" name="speech_generator" output="screen" required="false">
@@ -10,5 +12,7 @@
 
         <!-- 加载配置文件 -->
         <param name="config_path" value="$(arg config_path)"/>
+        <!-- TTS 引擎 -->
+        <param name="tts_engine" value="$(arg tts_engine)"/>
     </node>
 </launch>

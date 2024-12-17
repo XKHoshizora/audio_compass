@@ -4,12 +4,12 @@
 
 from abc import ABC, abstractmethod
 import asyncio
-import edge_tts
-from pathlib import Path
-import pyttsx3
 import subprocess
-import rospy
 from typing import Dict, Optional
+import edge_tts
+# from TTS.api import TTS  # Coqui TTS
+import pyttsx3
+import rospy
 from speech_generator.tts_cache import TTSCache
 
 
@@ -29,6 +29,53 @@ class TTSEngine(ABC):
     def stop(self) -> None:
         """停止当前播放"""
         pass
+
+
+# class CoquiTTSEngine(TTSEngine):
+#     """Coqui TTS引擎实现"""
+
+#     def initialize(self) -> bool:
+#         try:
+#             self.tts = TTS(model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=False)
+#             return True
+#         except Exception as e:
+#             rospy.logerr(f"Coqui TTS 初始化失败: {e}")
+#             return False
+
+#     def speak(self, text: str, voice_id: str, rate: str, volume: str) -> bool:
+#         try:
+#             output_path = "/tmp/coqui_output.wav"
+#             self.tts.tts_to_file(text=text, file_path=output_path)
+#             self._play_audio(output_path)
+#             return True
+#         except Exception as e:
+#             rospy.logerr(f"Coqui TTS 播放失败: {e}")
+#             return False
+
+
+# class MozillaTTSEngine(TTSEngine):
+#     """Mozilla TTS引擎实现"""
+
+#     def initialize(self) -> bool:
+#         self.model_path = "/path/to/model.pth"  # 替换为实际路径
+#         self.config_path = "/path/to/config.json"
+#         self.vocoder_path = "/path/to/vocoder.pth"
+#         return True
+
+#     def speak(self, text: str, voice_id: str, rate: str, volume: str) -> bool:
+#         try:
+#             output_path = "/tmp/mozilla_output.wav"
+#             subprocess.run([
+#                 "python3", "TTS/bin/synthesize.py",
+#                 "--text", text,
+#                 "--config_path", self.config_path,
+#                 "--out_path", output_path
+#             ])
+#             self._play_audio(output_path)
+#             return True
+#         except Exception as e:
+#             rospy.logerr(f"Mozilla TTS 播放失败: {e}")
+#             return False
 
 
 class EdgeTTSEngine(TTSEngine):

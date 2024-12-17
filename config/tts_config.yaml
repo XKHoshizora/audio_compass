@@ -1,5 +1,6 @@
 # config/tts_config.yaml
 tts_settings:
+    engine: "edge"  # 可选值: edge, coqui, mozilla, pyttsx3
     en:
         voice_id: "en-US-JennyNeural"
         rate: "+0%"

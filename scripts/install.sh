@@ -107,6 +107,7 @@ print_msg $YELLOW "安装Python包..."
 python_deps=(
     "pyttsx3"
     "edge-tts"  # 用于 Ubuntu 系统的高质量语音合成
+    "coqui-tts"
     "pyaudio"
     "vosk"
     "SpeechRecognition"
