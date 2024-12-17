@@ -10,10 +10,17 @@ import rospy
 from std_srvs.srv import Empty, EmptyResponse
 from audio_compass.srv import TextToSpeech, TextToSpeechResponse
 from dynamic_reconfigure.server import Server
-from audio_compass.config import TTSConfig
+from dynamic_reconfigure.encoding import extract_params
 from speech_generator.tts_engine import EdgeTTSEngine, PyttsxEngine
 from speech_generator.tts_cache import TTSCache
 from speech_generator.language_detector import LanguageDetector
+
+try:
+    from audio_compass.cfg import TTSConfig
+except ImportError:
+    import roslib
+    roslib.load_manifest('audio_compass')
+    from audio_compass.cfg import TTSConfig
 
 
 class SpeechGenerator:
@@ -29,7 +36,8 @@ class SpeechGenerator:
         self.dyn_server = Server(TTSConfig, self.dynamic_reconfigure_callback)
 
         # 定期清理缓存的计时器
-        rospy.Timer(rospy.Duration(3600), self._clean_cache_callback)  # 每小时清理一次
+        rospy.Timer(rospy.Duration(3600),
+                    self._clean_cache_callback)  # 每小时清理一次
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """加载配置文件"""
@@ -72,18 +80,19 @@ class SpeechGenerator:
             return False
 
         # 检测语言
-        detected_language = language or self.language_detector.detect_language(text)
+        detected_language = language or self.language_detector.detect_language(
+            text)
 
         # 获取语音设置
         settings = self.config['tts_settings'].get(detected_language,
-                                                 self.config['tts_settings']['en'])
+                                                   self.config['tts_settings']['en'])
 
         return self.engine.speak(
             text,
             settings['voice_id'],
             settings['rate'],
             settings.get('volume', '100%')  # 默认音量100%
-            )
+        )
 
     def handle_tts_request(self, req: TextToSpeech) -> TextToSpeechResponse:
         """处理TTS服务请求"""
@@ -106,6 +115,7 @@ class SpeechGenerator:
 
 
 if __name__ == "__main__":
-    config_path = rospy.get_param('~config_path', str(Path(__file__).parents[2] / "config" / "tts_config.yaml"))
+    config_path = rospy.get_param('~config_path', str(
+        Path(__file__).parents[2] / "config" / "tts_config.yaml"))
     speech_generator = SpeechGenerator(config_path)
     speech_generator.run()
