@@ -109,6 +109,7 @@ python_deps=(
     "SpeechRecognition"
     "scipy"
     "numpy"
+    "langdetect"
 )
 
 for dep in "${python_deps[@]}"; do

@@ -34,7 +34,8 @@ class WhisperSpeechRecognizer(BaseRecognizer):
             self.log_info(f"使用设备: {self.device}")
 
             # 加载模型，可选：tiny, base, small, medium, large
-            self.model = whisper.load_model("tiny", device=self.device)
+            model_name = rospy.get_param('~whisper_model', 'tiny')  # 从参数服务器获取模型名称
+            self.model = whisper.load_model(model_name, device=self.device)
 
             # 使用传入的触发词模式或默认值
             self.trigger_patterns = trigger_patterns or [
@@ -89,6 +90,7 @@ class WhisperSpeechRecognizer(BaseRecognizer):
         """发布导航方向消息"""
         msg = SpeechDirection()
         msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id = "base_link"
         msg.text = recognized_text
         msg.yaw = direction
         self.pub.publish(msg)

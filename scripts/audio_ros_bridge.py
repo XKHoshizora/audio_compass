@@ -195,6 +195,8 @@ class AudioRosBridge:
 
     def cleanup(self):
         """清理资源"""
+        if hasattr(self, 'tts_thread') and self.tts_thread:
+            self.tts_thread.join(timeout=1)  # 等待语音播放完成
         rospy.loginfo("Audio ROS Bridge 节点已关闭")
 
 

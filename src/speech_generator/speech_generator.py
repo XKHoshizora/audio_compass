@@ -1,154 +1,111 @@
-import rospy
-import os
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# speech_generator.py
+
+import yaml
 import platform
-import pyttsx3
-import asyncio
-import edge_tts
-import subprocess
+from pathlib import Path
+from typing import Dict, Any, Optional
+import rospy
 from std_srvs.srv import Empty, EmptyResponse
 from audio_compass.srv import TextToSpeech, TextToSpeechResponse
+from dynamic_reconfigure.server import Server
+from audio_compass.config import TTSConfig
+from speech_generator.tts_engine import EdgeTTSEngine, PyttsxEngine
+from speech_generator.tts_cache import TTSCache
+from speech_generator.language_detector import LanguageDetector
+
 
 class SpeechGenerator:
-    def __init__(self):
-        self.engine = None
-        self.voices = []
-        self.voice_settings = {
-            'en': {'voice_id': 'en-US-JennyNeural', 'rate': 0},  # 正常语速
-            'zh': {'voice_id': 'zh-CN-XiaoxiaoNeural', 'rate': 0},  # 正常语速
-            'ja': {'voice_id': 'ja-JP-NanamiNeural', 'rate': 0}  # 正常语速
-        }
-        self.is_engine_ready = False
-        self.use_edge_tts = platform.system() == "Linux"  # Ubuntu切换为Edge-TTS
-        self._init_tts_engine()
+    """语音生成器主类"""
 
-    def _init_tts_engine(self):
-        """初始化TTS引擎"""
+    def __init__(self, config_path: str):
+        self.config = self._load_config(config_path)
+        self.cache = TTSCache()
+        self.engine = self._create_engine()
+        self.language_detector = LanguageDetector()
+
+        # 设置动态重配置服务器
+        self.dyn_server = Server(TTSConfig, self.dynamic_reconfigure_callback)
+
+        # 定期清理缓存的计时器
+        rospy.Timer(rospy.Duration(3600), self._clean_cache_callback)  # 每小时清理一次
+
+    def _load_config(self, config_path: str) -> Dict[str, Any]:
+        """加载配置文件"""
         try:
-            if self.use_edge_tts:
-                # 初始化Edge-TTS
-                self.engine = "edge-tts"
-                self.is_engine_ready = True
-                self._setup_voices_edge_tts()
-                rospy.loginfo("Edge-TTS引擎初始化成功")
-            else:
-                # 初始化pyttsx3引擎
-                self.engine = pyttsx3.init()
-                self.voices = self.engine.getProperty('voices')
-                self.is_engine_ready = True
-                self._setup_voices_pyttsx3()
-                rospy.loginfo("pyttsx3引擎初始化成功")
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return yaml.safe_load(f)
         except Exception as e:
-            self.is_engine_ready = False
-            rospy.logwarn(f"TTS引擎初始化失败: {e}")
+            rospy.logerr(f"配置文件加载失败: {str(e)}")
+            return {}
 
-    def _setup_voices_pyttsx3(self):
-        """设置pyttsx3语音"""
-        for voice in self.voices:
-            voice_id = voice.id.lower()
-            if 'english' in voice_id or 'en' in voice_id:
-                self.voice_settings['en']['voice_id'] = voice.id
-            elif 'chinese' in voice_id or 'zh' in voice_id:
-                self.voice_settings['zh']['voice_id'] = voice.id
-            elif 'japanese' in voice_id or 'ja' in voice_id or 'jp' in voice_id:
-                self.voice_settings['ja']['voice_id'] = voice.id
-
-    def _setup_voices_edge_tts(self):
-        """设置Edge-TTS语音"""
-        self.voice_settings['en']['voice_id'] = 'en-US-JennyNeural'
-        self.voice_settings['zh']['voice_id'] = 'zh-CN-XiaoxiaoNeural'
-        self.voice_settings['ja']['voice_id'] = 'ja-JP-NanamiNeural'
-
-    def _check_audio_output(self):
-        """检查音频输出设备"""
-        return os.system("aplay -l") == 0
-
-    def speak(self, text, language=None):
-        """文本转语音"""
-        if not language:
-            language = self.detect_language(text)
-
-        if self.use_edge_tts:
-            return asyncio.run(self.edge_tts_speak(text, language))
+    def _create_engine(self) -> TTSEngine:
+        """创建TTS引擎实例"""
+        if platform.system() == "Linux":
+            engine = EdgeTTSEngine(self.cache)
         else:
-            return self.pyttsx3_speak(text, language)
+            engine = PyttsxEngine()
 
-    def pyttsx3_speak(self, text, language):
-        """使用pyttsx3执行TTS"""
-        if not self.is_engine_ready:
-            rospy.logwarn("pyttsx3引擎未就绪，跳过语音播放")
+        if not engine.initialize():
+            rospy.logerr("TTS引擎初始化失败")
+        return engine
+
+    def dynamic_reconfigure_callback(self, config, _):
+        """处理动态重配置请求"""
+        for lang in ['en', 'zh', 'ja']:
+            if lang in self.config['tts_settings']:
+                self.config['tts_settings'][lang].update({
+                    'rate': f"{config[f'{lang}_rate']}%",
+                    'volume': f"{config[f'{lang}_volume']}%"
+                })
+        return config
+
+    def _clean_cache_callback(self, _):
+        """定期清理缓存的回调函数"""
+        self.cache.clean_old_cache()
+
+    def speak(self, text: str, language: Optional[str] = None) -> bool:
+        """执行文本转语音"""
+        if not text:
+            rospy.logwarn("收到空文本")
             return False
 
-        try:
-            settings = self.voice_settings.get(language, self.voice_settings['en'])
-            self.engine.setProperty('voice', settings['voice_id'])
-            self.engine.setProperty('rate', settings['rate'])
-            self.engine.say(text)
-            self.engine.runAndWait()
-            return True
-        except Exception as e:
-            rospy.logerr(f"pyttsx3转换错误: {str(e)}")
-            return False
+        # 检测语言
+        detected_language = language or self.language_detector.detect_language(text)
 
-    async def edge_tts_speak(self, text, language):
-        """使用Edge-TTS执行TTS"""
-        if not self.is_engine_ready:
-            rospy.logwarn("Edge-TTS引擎未就绪，跳过语音播放")
-            return False
+        # 获取语音设置
+        settings = self.config['tts_settings'].get(detected_language,
+                                                 self.config['tts_settings']['en'])
 
-        try:
-            # 获取语音设置
-            settings = self.voice_settings.get(language, self.voice_settings['en'])
-            voice_id = settings['voice_id']
-
-            # 修正 rate 参数，确保是字符串并符合 Edge-TTS 格式
-            rate = f"+{settings['rate']}%" if isinstance(settings['rate'], int) else settings['rate']
-
-            # 执行语音合成
-            communicate = edge_tts.Communicate(text=text, voice=voice_id, rate=rate)
-            output_file = "/tmp/output.mp3"  # 临时存储生成的音频
-            await communicate.save(output_file)
-
-            # 播放音频并隐藏 mpg123 的输出
-            subprocess.run(
-                ["mpg123", output_file],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+        return self.engine.speak(
+            text,
+            settings['voice_id'],
+            settings['rate'],
+            settings.get('volume', '100%')  # 默认音量100%
             )
-            return True
-        except Exception as e:
-            rospy.logerr(f"Edge-TTS转换错误: {str(e)}")
-            return False
 
-    def detect_language(self, text):
-        """简单语言检测（根据内容）"""
-        if any('\u4e00' <= char <= '\u9fff' for char in text):
-            return 'zh'
-        elif any('\u3040' <= char <= '\u30ff' for char in text):
-            return 'ja'
-        else:
-            return 'en'
-
-    def handle_tts_request(self, req):
-        """处理 Text To Speech(TTS) 服务请求"""
+    def handle_tts_request(self, req: TextToSpeech) -> TextToSpeechResponse:
+        """处理TTS服务请求"""
         success = self.speak(req.text, req.language if req.language else None)
-        message = "Success" if success else "Failed (No audio device or error occurred)"
+        message = "Success" if success else "Failed"
         return TextToSpeechResponse(success=success, message=message)
 
-    def handle_tts_stop(self, req):
-        """停止TTS播放"""
-        if self.use_edge_tts:
-            rospy.logwarn("Edge-TTS 不支持主动停止")
-        else:
-            self.engine.stop()
+    def handle_tts_stop(self, _: Empty) -> EmptyResponse:
+        """处理停止TTS请求"""
+        self.engine.stop()
         return EmptyResponse()
 
-    def run(self):
+    def run(self) -> None:
+        """运行ROS节点"""
         rospy.init_node("speech_generator")
         rospy.Service("/text_to_speech", TextToSpeech, self.handle_tts_request)
         rospy.Service("/stop_tts", Empty, self.handle_tts_stop)
         rospy.loginfo("Speech Generator Node is ready.")
         rospy.spin()
 
+
 if __name__ == "__main__":
-    speech_generator = SpeechGenerator()
+    config_path = rospy.get_param('~config_path', str(Path(__file__).parents[2] / "config" / "tts_config.yaml"))
+    speech_generator = SpeechGenerator(config_path)
     speech_generator.run()

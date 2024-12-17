@@ -1,17 +1,14 @@
 <launch>
+    <!-- 加载配置文件参数 -->
+    <arg name="config_path" default="$(find audio_compass)/config/tts_config.yaml"/>
+
     <!-- 启动语音生成节点 -->
     <node pkg="audio_compass" type="speech_generator_node.py" name="speech_generator" output="screen" required="false">
         <!-- 如果节点启动失败，不会影响其他节点 -->
         <param name="respawn" value="true"/>
         <param name="respawn_delay" value="5"/>
 
-        <!-- 配置语速 默认值为 150 -->
-        <param name="rate" value="200"/>
-        <!-- 配置音量 默认值为 1.0-->
-        <param name="volume" value="0.8"/>
-        <!-- 配置语言 语言代码-->
-        <param name="language" value="en_US"/>
-        <!-- 配置语音 语音 ID-->
-        <param name="voice_id" value="english-us"/>
+        <!-- 加载配置文件 -->
+        <param name="config_path" value="$(arg config_path)"/>
     </node>
 </launch>

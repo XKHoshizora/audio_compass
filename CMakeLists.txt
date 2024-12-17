@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
     move_base_msgs
     message_generation
     wp_nav_controller
+    dynamic_reconfigure
 )
 
 # 添加消息文件
@@ -36,9 +37,13 @@ generate_messages(
     geometry_msgs
 )
 
+generate_dynamic_reconfigure_options(
+  config/TTSConfig.cfg
+)
+
 # 确保消息生成在其他target之前
 catkin_package(
-    CATKIN_DEPENDS roscpp rospy actionlib tf2 tf2_ros std_msgs geometry_msgs move_base_msgs message_generation message_runtime wp_nav_controller
+    CATKIN_DEPENDS roscpp rospy actionlib tf2 tf2_ros std_msgs geometry_msgs move_base_msgs message_generation message_runtime dynamic_reconfigure wp_nav_controller
 )
 
 include_directories(
@@ -50,6 +55,10 @@ catkin_install_python(PROGRAMS
     scripts/speech_generator_node.py
     scripts/audio_ros_bridge.py
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY config/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
 )
 
 install(DIRECTORY launch/

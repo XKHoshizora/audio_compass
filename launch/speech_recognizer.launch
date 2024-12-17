@@ -1,4 +1,7 @@
 <launch>
+    <!-- 语言模型路径 -->
+    <arg name="model_path" default="$(find audio_compass)/models"/>
+
     <!-- 启动语音识别节点 -->
     <node pkg="audio_compass" type="speech_recognizer_node.py" name="speech_recognizer" output="screen" required="false">
         <!-- 如果节点启动失败，不会影响其他节点 -->
@@ -17,6 +20,9 @@
         <param name="recognizer_type" value="google"/>
         <!-- 语言类型 Options: en-US, ja-JP, zh-CN -->
         <param name="language" value="en-US"/>
+
+        <!-- Vosk 特定配置 -->
+        <param name="model_path" value="$(arg model_path)"/>
 
         <!-- Whisper 特定配置 Options: tiny, base, small, medium, large -->
         <!-- <param name="whisper_model" value="tiny"/> -->

@@ -56,10 +56,8 @@ class VoskSpeechRecognizer(BaseRecognizer):
 
             # 当前脚本所在的目录
             current_dir = Path(__file__).parent
-            # 上上一级目录
-            parents_dir = current_dir.parents[1]
             # 模型路径
-            model_path = parents_dir / 'models'
+            model_path = Path(rospy.get_param('~model_path', str(current_dir.parents[2] / "models")))
 
             # 加载 Vosk 模型
             if self.language == 'en-US':
@@ -139,6 +137,7 @@ class VoskSpeechRecognizer(BaseRecognizer):
         """发布导航方向消息"""
         msg = SpeechDirection()
         msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id = "base_link"
         msg.text = recognized_text
         msg.yaw = direction
         self.pub.publish(msg)

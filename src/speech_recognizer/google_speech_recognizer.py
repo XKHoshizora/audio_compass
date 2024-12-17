@@ -146,6 +146,7 @@ class GoogleSpeechRecognizer(BaseRecognizer):
         """发布导航方向消息"""
         msg = SpeechDirection()
         msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id = "base_link"
         msg.text = recognized_text
         msg.yaw = direction
         self.pub.publish(msg)

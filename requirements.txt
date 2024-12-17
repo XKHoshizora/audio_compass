@@ -6,3 +6,5 @@ whisper>=1.0.0
 torch>=1.9.0
 numpy>=1.21.0
 pyttsx3>=2.90
+edge-tts>=6.1.5
+langdetect>=1.0.9
