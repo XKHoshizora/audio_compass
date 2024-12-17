@@ -84,6 +84,9 @@ system_deps=(
     "flac"
     "mpg123"  # 用于播放 Edge-TTS 生成的 MP3 文件
     "alsa-utils"  # 提供 aplay 命令以检查音频输出设备
+    "python3-yaml"    # 添加 yaml 支持
+    "python3-tk"     # 添加 tkinter 支持
+    "ros-noetic-dynamic-reconfigure"  # 添加动态重配置支持
 )
 
 for dep in "${system_deps[@]}"; do
@@ -110,6 +113,9 @@ python_deps=(
     "scipy"
     "numpy"
     "langdetect"
+    "pyyaml>=5.1"    # 添加 yaml 支持
+    "rospkg"         # 添加 ROS 包支持
+    "catkin_pkg"     # 添加 catkin 包支持
 )
 
 for dep in "${python_deps[@]}"; do
@@ -175,6 +181,13 @@ else
     print_msg $GREEN "检测到播放设备"
 fi
 
+# 添加权限设置
+# print_msg $YELLOW "设置配置文件权限..."
+# if [ -f "config/TTSConfig.cfg" ]; then
+#     chmod +x config/TTSConfig.cfg
+#     print_msg $GREEN "TTSConfig.cfg 权限设置完成"
+# fi
+
 # 最后的验证
 print_msg $YELLOW "验证所有安装..."
 all_deps_installed=true
@@ -198,3 +211,5 @@ print_msg $YELLOW "1. 如果看到pip权限警告，可以忽略"
 print_msg $YELLOW "2. 如果音频设备未就绪，可以稍后插入"
 print_msg $YELLOW "3. 可能需要运行: export LD_LIBRARY_PATH=/usr/lib/llvm-8/lib:\$LD_LIBRARY_PATH"
 print_msg $YELLOW "4. 建议重新启动终端以确保所有更改生效"
+print_msg $YELLOW "5. 如果使用动态重配置功能，请确保已经运行 catkin_make"
+# print_msg $YELLOW "6. 确保 config/TTSConfig.cfg 具有可执行权限"
