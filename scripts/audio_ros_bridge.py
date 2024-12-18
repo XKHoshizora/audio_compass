@@ -94,7 +94,8 @@ class AudioRosBridge:
     def pause_navigation(self):
         """暂停导航"""
         try:
-            self.async_speak("暂停导航")
+            # self.async_speak("暂停导航")
+            self.async_speak("一時停止します")
 
             # response = self.nav_client(command='pause')
             response = self.seq_client(command='pause')
@@ -104,7 +105,8 @@ class AudioRosBridge:
                 return True
             else:
                 rospy.logerr(f"暂停导航失败：{response.message}")
-                self.async_speak("暂停导航失败")
+                # self.async_speak("暂停导航失败")
+                self.async_speak("一時停止に失敗しました")
                 return False
 
         except rospy.ServiceException as e:
@@ -114,18 +116,21 @@ class AudioRosBridge:
     def resume_navigation(self):
         """恢复导航"""
         try:
-            self.async_speak("恢复导航")
+            # self.async_speak("恢复导航")
+            self.async_speak("ナビゲーションを再開します")
 
             # response = self.nav_client(command='resume')
             response = self.seq_client(command='resume')
 
             if response.success:
                 rospy.loginfo("导航已恢复")
-                self.async_speak("导航已恢复")
+                # self.async_speak("导航已恢复")
+                self.async_speak("ナビゲーションを再開しました")
                 return True
             else:
                 rospy.logerr(f"恢复导航失败：{response.message}")
-                self.async_speak("恢复导航失败")
+                # self.async_speak("恢复导航失败")
+                self.async_speak("ナビゲーションの再開に失敗しました")
                 return False
 
         except rospy.ServiceException as e:
@@ -162,7 +167,8 @@ class AudioRosBridge:
 
             # 发送目标
             rospy.loginfo(f"发送导航目标: {math.degrees(angle_rad)} 度")
-            self.async_speak("开始转向")
+            # self.async_speak("开始转向")
+            self.async_speak("回転します")
             self.mb_client.send_goal(goal)
 
             # 等待结果
@@ -170,13 +176,15 @@ class AudioRosBridge:
             result = self.mb_client.get_result()
             if result:
                 rospy.loginfo("导航成功")
-                self.async_speak("导航成功")
+                # self.async_speak("导航成功")
+                self.async_speak("ナビゲーション成功しました")
 
                 # 执行一些操作并等待完成（如购买东西、播放视频等）
                 rospy.sleep(5)
             else:
                 rospy.logerr("导航失败")
-                self.async_speak("导航失败")
+                # self.async_speak("导航失败")
+                self.async_speak("ナビゲーション失敗しました")
 
             # 最后无论成功失败都恢复导航
             return self.resume_navigation()
