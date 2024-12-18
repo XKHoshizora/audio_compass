@@ -5,6 +5,7 @@
 from abc import ABC, abstractmethod
 import asyncio
 import subprocess
+from pathlib import Path
 from typing import Dict, Optional
 import edge_tts
 # from TTS.api import TTS  # Coqui TTS
@@ -109,16 +110,22 @@ class EdgeTTSEngine(TTSEngine):
 
     async def _async_speak(self, text: str, voice_id: str, rate: str, volume: str) -> bool:
         try:
+            # 规范化音量格式
             if not volume.startswith('+') and not volume.startswith('-'):
                 volume = f"+{volume}" if volume.rstrip('%').isdigit() and int(volume.rstrip('%')) >= 100 else f"{int(volume.rstrip('%'))-100}%"
 
+            # 创建临时文件路径
             output_file = Path("/tmp/output.mp3")
+
+            # 创建Edge TTS通信对象
             communicate = edge_tts.Communicate(
                 text=text,
                 voice=voice_id,
                 rate=rate,
                 volume=volume
             )
+
+            # 保存音频文件
             await communicate.save(str(output_file))
 
             # 缓存音频文件

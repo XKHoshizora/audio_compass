@@ -45,22 +45,32 @@ class AudioRosBridge:
         self.sub = rospy.Subscriber(
             'speech_direction', SpeechDirection, self.speech_recognition_callback)
 
+        self.tts_lock = threading.Lock()
+        self.tts_thread = None
+
         rospy.loginfo("Audio ROS Bridge 初始化完成")
 
     def async_speak(self, say):
         """异步执行语音合成"""
-        if self.tts_thread and self.tts_thread.is_alive():
-            # 如果上一个语音还在播放，等待其完成，可能会导致导航控制流程有短暂延迟
-            rospy.logwarn("TTS 上一线程未结束，正在等待...")
-            self.tts_thread.join()
+        with self.tts_lock:
+            if self.tts_thread and self.tts_thread.is_alive():
+                try:
+                    self.tts_thread.join(timeout=1.0)  # 设置超时时间
+                    if self.tts_thread.is_alive():
+                        rospy.logwarn("上一个TTS任务未完成，跳过当前语音")
+                        return False
+                except Exception as e:
+                    rospy.logerr(f"等待TTS线程时出错: {e}")
+                    return False
 
-        # 创建并启动新的语音播放线程
-        self.tts_thread = threading.Thread(
-            target=self._speak_thread,
-            args=(say,)
-        )
-        self.tts_thread.daemon = True
-        self.tts_thread.start()
+            # 创建并启动新的语音播放线程
+            self.tts_thread = threading.Thread(
+                target=self._speak_thread,
+                args=(say,),
+                daemon=True
+            )
+            self.tts_thread.start()
+            return True
 
     def _speak_thread(self, say):
         """语音合成线程函数"""
@@ -203,8 +213,9 @@ class AudioRosBridge:
 
     def cleanup(self):
         """清理资源"""
-        if hasattr(self, 'tts_thread') and self.tts_thread:
-            self.tts_thread.join(timeout=1)  # 等待语音播放完成
+        with self.tts_lock:
+            if self.tts_thread and self.tts_thread.is_alive():
+                self.tts_thread.join(timeout=2.0)  # 等待最多2秒
         rospy.loginfo("Audio ROS Bridge 节点已关闭")
 
 
