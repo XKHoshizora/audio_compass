@@ -162,7 +162,6 @@ class AudioRosBridge:
             goal.target_pose.header.frame_id = "base_link"  # 基于机器人本地坐标系
             goal.target_pose.header.stamp = rospy.Time.now()
 
-
             # 设置当前位置为目标点（基于机器人本地坐标系时使用）
             goal.target_pose.pose.position.x = 0.0
             goal.target_pose.pose.position.y = 0.0
