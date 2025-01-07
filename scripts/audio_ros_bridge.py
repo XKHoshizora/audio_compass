@@ -153,9 +153,17 @@ class AudioRosBridge:
         # 将角度从度转换为弧度（如有需要）
         # angle_rad = math.radians(angle_deg)
 
+        navigation_paused = False  # 标志导航是否已暂停
+
         try:
-            # 暂停导航
-            self.pause_navigation()
+            # 尝试暂停导航
+            if not self.pause_navigation():
+                rospy.logerr("暂停导航失败，无法执行后续操作")
+                # self.async_speak("暂停导航失败，无法执行后续操作")
+                self.async_speak("ナビゲーションの一時停止に失敗したため、後続の操作を実行できません")
+                return False
+
+            navigation_paused = True  # 标记导航已暂停
 
             # 创建目标姿态
             goal = MoveBaseGoal()
@@ -180,28 +188,43 @@ class AudioRosBridge:
             self.async_speak("回転します")
             self.mb_client.send_goal(goal)
 
-            # 等待结果
+            # 等待导航完成并获取结果
             self.mb_client.wait_for_result()
-            result = self.mb_client.get_result()
-            if result:
+            nav_result = self.mb_client.get_result()
+
+            if nav_result == actionlib.GoalStatus.SUCCEEDED:
                 rospy.loginfo("导航成功")
                 # self.async_speak("导航成功")
                 self.async_speak("ナビゲーション成功しました")
 
-                # 执行一些操作并等待完成（如购买东西、播放视频等）
+                # 执行一些操作并等待其完成（如购买东西、播放视频等）
                 rospy.sleep(5)
+
+                return True  # 此处的 return 会被 finally 语句覆盖
             else:
-                rospy.logerr("导航失败")
+                rospy.logerr("导航失败，状态码: {nav_result}")
                 # self.async_speak("导航失败")
                 self.async_speak("ナビゲーション失敗しました")
+                return False
 
-            # 最后无论成功失败都恢复导航
-            return self.resume_navigation()
-
-        except Exception as e:
-            rospy.logerr(f"导航过程出错: {e}")
-            self.resume_navigation()  # 确保恢复导航
+        except rospy.ServiceException as e:
+            rospy.logerr(f"audio_ros_bridge 节点中出现异常: {e}")
             return False
+        except Exception as e:
+            rospy.logerr(f"audio_ros_bridge 节点中出现未预期异常: {e}")
+            return False
+
+        # finally 块总是会执行，即使在 try 块中发生了异常或已执行过 return 语句
+        finally:
+            # 确保在必要时恢复导航
+            if navigation_paused:
+                if self.resume_navigation():
+                    rospy.loginfo("导航已恢复")
+                    self.async_speak("导航已恢复")
+                else:
+                    rospy.logerr("恢复导航失败")
+                    self.async_speak("导航恢复失败，请检查系统状态")
+            # 这里没有return语句，所以不会覆盖 finally 块之前的返回值
 
     def run(self):
         """运行节点"""
